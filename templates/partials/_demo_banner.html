@@ -1,0 +1,17 @@
+{% if has_demo_listings %}
+<div class="hint" data-tour="demo-banner" role="note">
+    <div class="hint-body">
+        <div class="hint-title">Oglądasz trzy przykładowe ogłoszenia.</div>
+        <p class="hint-text">
+            Dane, zdjęcia i kontakty zostały przygotowane wyłącznie do tego demo.
+            Analizy opisane jako AI są zapisanym wynikiem lokalnego modelu.
+        </p>
+    </div>
+    <button type="button" class="btn-secondary text-xs shrink-0"
+            hx-post="{{ '/demo/reset' if DEMO_MODE else '/demo/usun' }}" hx-target="body" hx-swap="none"
+            hx-confirm="{{ 'Przywrócić początkowy stan demo?' if DEMO_MODE else 'Usunąć trzy przykładowe ogłoszenia? Twoje własne pozostaną nietknięte.' }}"
+            hx-on::after-request="sessionStorage.removeItem('tour:state'); localStorage.removeItem('tour:seen'); localStorage.removeItem('tour:paused'); window.location.reload()">
+        {{ 'Resetuj demo' if DEMO_MODE else 'Usuń przykłady' }}
+    </button>
+</div>
+{% endif %}

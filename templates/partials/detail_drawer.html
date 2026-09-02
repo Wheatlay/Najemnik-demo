@@ -1,0 +1,201 @@
+{% import "_field_macros.html" as m with context %}
+<div id="drawer-content-{{ listing.id }}">
+    <div class="flex items-center justify-between mb-2">
+        <div class="font-semibold text-lg">{{ listing.title or "Bez nazwy" }}</div>
+        {% if listing.is_demo %}
+        <span class="rounded-full bg-zinc-200 dark:bg-zinc-700 text-xs font-semibold px-2 py-0.5 shrink-0">Przykład</span>
+        {% endif %}
+    </div>
+
+    {# Same problem the gallery card already solved (_gallery_card.html): an
+       import replies as soon as the listing row commits, but photos keep
+       downloading on a background thread, so a drawer opened in that window
+       showed a static "brak zdjęć" that never updated even once photos
+       landed - reopening the drawer was the only way to see them. This
+       wrapper polls and refreshes itself the same way; the container (not
+       _photo_gallery.html's own root) holds the id so re-fetches replace
+       the right node, and Alpine re-initializes the swapped-in x-data the
+       same way it already does for every other htmx-swapped drawer section. #}
+    <div id="drawer-photos-{{ listing.id }}"
+         {% if is_awaiting_photos(listing) %}
+         hx-get="/listings/{{ listing.id }}/drawer-photos" hx-trigger="every 3s"
+         hx-target="this" hx-swap="innerHTML"
+         {% endif %}>
+        {% include "partials/_photo_gallery.html" %}
+    </div>
+
+    {% set on_map_page = '/mapa' in request.headers.get('hx-current-url', '') %}
+    {# Outbound actions: the ad link and the map jump. On /mapa "show on the
+       full map" is a no-op (you're already there), so it's swapped for a way
+       back to the gallery instead.
+
+       The phone number deliberately isn't here. It sat at the top of every
+       listing regardless of whether calling was the next thing to do, and
+       for a listing already marked "Przejrzane" it appeared twice on one
+       screen - once here and once in "Co dalej: zadzwoń". It now shows only
+       in that block, at the point it's actually needed, and stays editable
+       in the Kontakt group like every other field. #}
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+        <a href="{{ listing.url }}" target="_blank" class="btn-secondary text-sm">↗ Otwórz ogłoszenie</a>
+        {% if on_map_page %}
+        <a href="/galeria?focus={{ listing.id }}" class="btn-secondary text-sm">🖼 Przejdź do galerii</a>
+        {% elif listing.lat and listing.lon %}
+        <a href="/mapa?focus={{ listing.id }}" data-tour="to-map" class="btn-secondary text-sm">🗺 Pokaż na pełnej mapie</a>
+        {% endif %}
+    </div>
+
+    {% include "partials/_next_step.html" %}
+
+    {% if listing.lat and listing.lon and not on_map_page %}
+    {# The drawer's own mini-map is redundant (and visually noisy) when the
+       drawer is already open over the full map on /mapa - htmx sends the
+       browser's current URL on every request, so that's how we know. #}
+    <div id="mini-map-{{ listing.id }}" hx-preserve class="relative w-full h-40 rounded-lg overflow-hidden mb-3"></div>
+    <script>
+        (function () {
+            if (window.initMiniMap) {
+                initMiniMap("mini-map-{{ listing.id }}", {{ listing.lat }}, {{ listing.lon }},
+                            {{ STATUS_MARKER_VARS.get(listing.status.value, "--color-status-nowe")|tojson }});
+            }
+        })();
+    </script>
+    {% endif %}
+
+    {# commute_distances (straight-line distance to /ustawienia reference
+       points) is hidden for now - unfinished (no real drive time, just a
+       raw-km number) and read as more authoritative than it is. Backend
+       and settings data are untouched; re-enable by restoring this block. #}
+
+    <div class="grid grid-cols-2 gap-2 mb-3">
+        <div class="card p-2">
+            <div class="field-label">Suma miesięczna</div>
+            <div class="field-computed-money {{ cost_ctx.suma_miesieczna_color(listing) }}">{{ display.display_value(listing, fields.FIELDS_BY_KEY["suma_miesieczna"]) }}</div>
+        </div>
+        <div class="card p-2">
+            <div class="field-label">Suma wejścia</div>
+            <div class="field-computed-money {{ cost_ctx.suma_wejscia_color(listing) }}">{{ display.display_value(listing, fields.FIELDS_BY_KEY["suma_wejscia"]) }}</div>
+        </div>
+    </div>
+
+    {# Inactive pills are outlined ghosts so the single tinted (active) pill
+       reads at a glance; solid gray fills made all six look equally dead. #}
+    <div class="card p-2 mb-3">
+        <div class="field-label mb-1.5">Status</div>
+        <div class="flex flex-wrap gap-1">
+            {% for s in display.STATUS_VALUES %}
+            <button type="button" data-status="{{ s }}"
+                    class="status-pill {% if listing.status.value == s %}{{ STATUS_PILL_CLASSES[s] }}{% else %}ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:ring-zinc-400 dark:hover:ring-zinc-500{% endif %}"
+                    hx-patch="/listings/{{ listing.id }}/field"
+                    hx-vals='{"key": "status", "value": "{{ s }}", "render": "drawer"}'
+                    hx-target="#drawer-body" hx-swap="innerHTML">
+                {{ s }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Ranking and the star ratings are both "your judgment" - one card. #}
+    <div class="card p-2 mb-3">
+        <div class="field-label mb-1.5">Twoja ocena</div>
+        <div class="flex items-center gap-2 mb-2">
+            <span class="text-sm text-zinc-500" title="Twoja kolejność ulubionych ofert - im niższy numer, tym wyżej w rankingu">Ranking</span>
+            {% if listing.rank %}
+            <button type="button" class="btn-secondary text-xs px-2 leading-none py-1" title="Przesuń wyżej" aria-label="Przesuń wyżej"
+                    {% if listing.rank == 1 %}disabled{% endif %}
+                    hx-post="/listings/{{ listing.id }}/rank" hx-vals='{"value": "{{ listing.rank - 1 }}", "render": "drawer"}'
+                    hx-target="#drawer-body" hx-swap="innerHTML">▲</button>
+            <span class="font-semibold text-sm w-9 text-center">#{{ listing.rank }}</span>
+            <button type="button" class="btn-secondary text-xs px-2 leading-none py-1" title="Przesuń niżej" aria-label="Przesuń niżej"
+                    hx-post="/listings/{{ listing.id }}/rank" hx-vals='{"value": "{{ listing.rank + 1 }}", "render": "drawer"}'
+                    hx-target="#drawer-body" hx-swap="innerHTML">▼</button>
+            <button type="button" class="text-red-600 hover:underline text-xs"
+                    hx-post="/listings/{{ listing.id }}/rank" hx-vals='{"value": "", "render": "drawer"}'
+                    hx-target="#drawer-body" hx-swap="innerHTML">usuń z rankingu</button>
+            {% else %}
+            <button type="button" class="btn-secondary text-xs"
+                    hx-post="/listings/{{ listing.id }}/rank" hx-vals='{"value": "999999", "render": "drawer"}'
+                    hx-target="#drawer-body" hx-swap="innerHTML">+ Dodaj do rankingu</button>
+            {% endif %}
+            <details class="ml-auto text-xs text-zinc-500">
+                <summary class="cursor-pointer select-none">wpisz pozycję</summary>
+                <input type="number" class="field-input w-16 mt-1" value="{{ listing.rank or '' }}"
+                       hx-post="/listings/{{ listing.id }}/rank" hx-trigger="change"
+                       hx-vals='{"render": "drawer"}' name="value"
+                       hx-target="#drawer-body" hx-swap="innerHTML" placeholder="—">
+            </details>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            {{ m.stars(listing, "ocena_wygladu", "Wygląd", "#drawer-body", "drawer") }}
+            {{ m.stars(listing, "ocena_glosnosci_otoczenia", "Głośność otoczenia", "#drawer-body", "drawer") }}
+        </div>
+    </div>
+
+    {% if listing.phone %}
+    {% set cp = callprep.build_callprep(listing) %}
+    {% include "partials/_callprep.html" %}
+    {% endif %}
+
+    {# The "Analizuj ponownie" operator panel used to sit here, hidden behind
+       {% if false %}. It's gone rather than dormant now: re-enrichment is
+       reachable from /panel for every listing, and the one piece of data it
+       still rendered - notes_extra - was removed with the "Uwagi (AI)"
+       field. #}
+
+    {% for group, group_fields in fields.groups_in("detail") %}
+    {% if group != "Status i ocena" %}
+    {# Every group starts collapsed. Opening a listing used to unfold ~30
+       inputs at once, which reads as a form to fill in rather than a summary
+       to skim - the first thing a new user sees shouldn't be a wall. The
+       user's own choice per group is remembered in localStorage from then
+       on, so this default only applies until they touch it. #}
+    {# No border-t here: the heading is its own filled bar now, so a divider
+       above it would just double up the separation. #}
+    <div class="pb-2"
+         x-data="{ open: localStorage.getItem('grp:{{ group }}') === 'true' }"
+         {# Re-measure the textareas whenever this section opens. The smart
+            fields (parking, piwnica, kaucja…) are textarea.autosize, and a
+            textarea inside a display:none section reports scrollHeight 0 -
+            so the autosize pass that runs on render collapses every hidden
+            one to a couple of pixels, and nothing re-ran it on expand. Now
+            that every section starts collapsed, that was every field. #}
+         x-effect="localStorage.setItem('grp:{{ group }}', open);
+                   if (open) $nextTick(() => requestAnimationFrame(() => window.autosizeAllTextareas && autosizeAllTextareas($el)))">
+        <button type="button" data-tour-group="{{ group }}" class="drawer-group-header" @click="open = !open">
+            <span>{{ group|upper }}</span>
+            <span class="drawer-group-chevron" x-text="open ? '▾' : '▸'"></span>
+        </button>
+        <div x-show="open" x-cloak data-tour-group-body="{{ group }}">
+            {% for f in group_fields %}
+                {% if f.key == "fees_note" %}
+                <div class="mb-2">
+                    <div class="field-label mb-0.5">⚠ {{ f.label }} <span class="opacity-60">(generowane automatycznie z analizy AI)</span></div>
+                    <div data-tour="fees-note" class="field-input border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 whitespace-pre-wrap min-h-[2.5rem] py-2">{{ listing.fees_note or "—" }}</div>
+                </div>
+                {% elif f.key == "tags" %}
+                <div class="mb-2">
+                    <div class="field-label mb-0.5 flex items-center justify-between">
+                        <span>Tagi</span>
+                    </div>
+                    <input type="text" class="field-input" name="value" value="{{ listing.tags|join(', ') }}"
+                           hx-patch="/listings/{{ listing.id }}/field" hx-trigger="blur changed"
+                           hx-vals='{"key": "tags", "render": "drawer"}'
+                           hx-target="#drawer-body" hx-swap="innerHTML">
+                </div>
+                {% elif f.key not in ("status", "termin_ogledzin", "ocena_wygladu", "ocena_glosnosci_otoczenia", "rank", "url") %}
+                    {{ m.field_row(listing, f, "#drawer-body", "drawer") }}
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    {# No per-listing delete. Setting a listing to "Odrzucone" is how one is
+       taken out of the way, and it's reversible; a permanent, unrecoverable
+       button one misclick away from a confirm dialog isn't worth the risk on
+       data the user spent a search collecting. Deleting everything is still
+       possible via /konto (account deletion, GDPR). #}
+    <div class="flex items-center justify-between pt-3 mt-2 border-t border-zinc-200 dark:border-zinc-800">
+        <span class="text-xs text-zinc-400">Dodano {{ listing.created_at.strftime("%Y-%m-%d") }}</span>
+    </div>
+</div>

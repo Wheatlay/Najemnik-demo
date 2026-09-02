@@ -1,0 +1,69 @@
+{# At most one instructional block above the listings, ever - and once the
+   account has real listings and no examples loaded, none at all. Anything
+   worth teaching is taught by the tour, in place, at the moment it applies. #}
+{% if not has_any_listings %}
+    {% include "partials/_onboarding_empty_state.html" %}
+{% elif has_demo_listings %}
+    {% include "partials/_demo_banner.html" %}
+{% endif %}
+{% if has_any_listings %}
+<div class="flex items-center gap-2 mb-3">
+    <button type="button" data-tour="compare-toggle"
+            :class="$store.ui.compareMode ? 'btn' : 'btn-secondary'"
+            @click="$store.ui.compareMode = !$store.ui.compareMode;
+                    if (!$store.ui.compareMode) $store.ui.compareSel = []">
+        <span x-text="$store.ui.compareMode ? '✕ Wyjdź z trybu porównania' : '⚖ Tryb porównania'"></span>
+    </button>
+    <span x-show="$store.ui.compareMode" x-cloak class="text-sm text-zinc-500">
+        Klikaj mieszkania, żeby je zaznaczyć (2-4).
+    </span>
+</div>
+{% endif %}
+
+<div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));">
+    {% for listing in listings %}
+        {% include "partials/_gallery_card.html" %}
+    {% else %}
+    <div class="col-span-full text-center text-zinc-500 py-12">
+        Brak ogłoszeń spełniających filtry. Dodaj pierwsze przez „+ Dodaj”.
+    </div>
+    {% endfor %}
+</div>
+{% if focus_id %}
+<script>
+    {# Coming from "Przejdź do galerii" (drawer, /mapa) - reopen the same
+       listing's drawer here instead of landing on a plain unfocused grid.
+       On a full page load this script runs while the parser is still on
+       <main> - #drawer-panel/#drawer-body are declared later in base.html
+       and don't exist yet, so openDrawer()'s htmx.ajax target lookup fails
+       silently. An htmx-swapped reload of just #main-content doesn't have
+       that problem (the drawer shell is already there), hence the
+       readyState check instead of an unconditional DOMContentLoaded wait. #}
+    (function () {
+        function openFocus() { if (window.openDrawer) openDrawer({{ focus_id|tojson }}); }
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", openFocus);
+        } else {
+            openFocus();
+        }
+    })();
+</script>
+{% endif %}
+
+{# Fixed rather than in-flow: the grid scrolls and the selection needs to
+   stay reachable without scrolling back. Sits above the drawer's z-index
+   only while compare mode is on, and compare mode disables the drawer. #}
+<div x-show="$store.ui.compareMode && $store.ui.compareSel.length > 0" x-cloak
+     class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 card px-4 py-3 flex items-center gap-4 shadow-xl">
+    <span class="text-sm">
+        Wybrano <span class="font-semibold" x-text="$store.ui.compareSel.length"></span>
+        <span class="text-zinc-500" x-show="$store.ui.compareSel.length < 2">- zaznacz co najmniej 2</span>
+    </span>
+    <button type="button" class="btn-secondary text-sm"
+            @click="$store.ui.compareSel = []">Wyczyść</button>
+    <button type="button" data-tour="compare-go" class="btn text-sm"
+            :disabled="$store.ui.compareSel.length < 2 || $store.ui.compareSel.length > 4"
+            @click="window.location = '/porownaj2?ids=' + $store.ui.compareSel.join(',')">
+        Porównaj →
+    </button>
+</div>

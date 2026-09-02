@@ -1,0 +1,34 @@
+{# Stable wrapper so an htmx view swap can also *remove* the search box, the
+   same trick _sidebar_region.html uses: an out-of-band swap can only replace
+   an element that exists in the response, so the region has to be the thing
+   with the id, not the form. #}
+<div id="search-form-region" hx-swap-oob="true" class="contents">
+    {# Same allowlist as the sidebar - searching only means something on the
+       views that render a filtered set of listings. On /ustawienia, /konto
+       and /admin/* the form would submit hx-get="/{{ view }}", which for
+       admin isn't even a route. #}
+    {% if view in ("galeria", "mapa", "porownaj") %}
+    <form id="search-form"
+          hx-get="/{{ view }}"
+          hx-target="#main-content"
+          hx-push-url="true"
+          hx-swap="innerHTML transition:true"
+          hx-indicator="#nav-progress"
+          {# type="search" fires both "change" (value-commit) and the form's
+             native "submit" on Enter - "drop" collapses that into one request
+             instead of two, which is safe here since both fire with the exact
+             same form values. #}
+          hx-sync="this:drop"
+          class="w-full sm:flex-1 sm:max-w-md">
+        {# Carry over every other active filter/sort param, the same way
+           nav_url()/sort_url() do - otherwise typing a search term here
+           silently resets any filters already applied in the sidebar. #}
+        {% for k, v in request.query_params.multi_items() if k != 'q' %}
+        <input type="hidden" name="{{ k }}" value="{{ v }}">
+        {% endfor %}
+        <input type="search" name="q" value="{{ request.query_params.get('q', '') }}"
+               placeholder="🔍 szukaj"
+               class="field-input" onchange="this.form.requestSubmit()">
+    </form>
+    {% endif %}
+</div>

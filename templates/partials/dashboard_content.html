@@ -1,0 +1,94 @@
+{% if not has_any_listings %}
+{% include "partials/_onboarding_empty_state.html" %}
+{% endif %}
+{% if upcoming_viewings %}
+<div class="mb-4">
+    <h3 class="font-medium mb-2">📅 Nadchodzące oględziny</h3>
+    <div class="space-y-2">
+        {% for l in upcoming_viewings %}
+        {% set overdue = l.termin_ogledzin < now %}
+        <div class="gallery-card card p-2 flex items-center justify-between cursor-pointer" data-listing-id="{{ l.id }}"
+             hx-get="/listings/{{ l.id }}/drawer" hx-target="#drawer-body" hx-swap="innerHTML"
+             @click="$store.ui.drawerOpen = true; window.setActiveListing('{{ l.id }}')">
+            <div class="min-w-0">
+                <div class="text-xs font-medium {{ 'text-red-600 dark:text-red-400' if overdue else 'text-accent-600 dark:text-accent-400' }}">
+                    {{ "⚠ zaległe: " if overdue else "" }}{{ l.termin_ogledzin.strftime("%d.%m %H:%M") }}
+                </div>
+                <div class="truncate">{{ l.title or "Bez nazwy" }}</div>
+            </div>
+            <span class="font-semibold shrink-0 ml-2">{{ display.display_value(l, fields.FIELDS_BY_KEY["suma_miesieczna"]) }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-1">
+    {% for s in display.STATUS_VALUES %}
+    <a href="/galeria?status={{ s|urlencode }}"
+       class="card p-3 text-center hover:ring-2 hover:ring-accent-400 transition-shadow {{ 'opacity-40' if not counts.get(s) else '' }}">
+        <div class="text-2xl font-semibold">{{ counts.get(s, 0) }}</div>
+        <div class="status-pill mt-1 {{ STATUS_PILL_CLASSES[s] }}">{{ s }}</div>
+    </a>
+    {% endfor %}
+</div>
+<div class="text-xs text-zinc-500 mb-4">Kliknij liczbę, aby zobaczyć te ogłoszenia w Galerii.</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-1">
+    <div class="card p-3">
+        <div class="field-label">Średni koszt miesięczny</div>
+        <div class="text-xl font-semibold">{{ (avg_cost|string + " zł") if avg_cost else "—" }}</div>
+    </div>
+    <div class="card p-3">
+        <div class="field-label">Mediana kosztu miesięcznego</div>
+        <div class="text-xl font-semibold">{{ (median_cost|string + " zł") if median_cost else "—" }}</div>
+    </div>
+    <div class="card p-3">
+        <div class="field-label">Średnia cena za m²</div>
+        <div class="text-xl font-semibold">{{ (avg_m2|string + " zł/m²") if avg_m2 else "—" }}</div>
+    </div>
+</div>
+<div class="text-xs text-zinc-500 mb-4">Na podstawie {{ stats_count }} aktywnych ogłoszeń.</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div>
+        <h3 class="font-medium mb-2">Najtańsze</h3>
+        <div class="space-y-2">
+            {% for l in cheapest %}
+            <div class="gallery-card card p-2 flex items-center justify-between cursor-pointer" data-listing-id="{{ l.id }}"
+                 hx-get="/listings/{{ l.id }}/drawer" hx-target="#drawer-body" hx-swap="innerHTML"
+                 @click="$store.ui.drawerOpen = true; window.setActiveListing('{{ l.id }}')">
+                <span class="truncate">{{ l.title or "Bez nazwy" }}</span>
+                <span class="font-semibold shrink-0 ml-2">{{ display.display_value(l, fields.FIELDS_BY_KEY["suma_miesieczna"]) }}</span>
+            </div>
+            {% else %}<div class="text-zinc-500 text-sm">Brak danych.</div>{% endfor %}
+        </div>
+    </div>
+    <div>
+        <h3 class="font-medium mb-2">Najlepiej oceniane</h3>
+        <div class="space-y-2">
+            {% for l in best_rated %}
+            <div class="gallery-card card p-2 flex items-center justify-between cursor-pointer" data-listing-id="{{ l.id }}"
+                 hx-get="/listings/{{ l.id }}/drawer" hx-target="#drawer-body" hx-swap="innerHTML"
+                 @click="$store.ui.drawerOpen = true; window.setActiveListing('{{ l.id }}')">
+                <span class="truncate">{{ l.title or "Bez nazwy" }}</span>
+                <span class="shrink-0 ml-2">★ {{ l.ocena_wygladu or "—" }} / 🔇 {{ l.ocena_glosnosci_otoczenia or "—" }}</span>
+            </div>
+            {% else %}<div class="text-zinc-500 text-sm">Brak danych.</div>{% endfor %}
+        </div>
+    </div>
+    <div>
+        <h3 class="font-medium mb-2">Twój ranking</h3>
+        <div class="space-y-2">
+            {% for l in ranked %}
+            <div class="gallery-card card p-2 flex items-center gap-2 cursor-pointer" data-listing-id="{{ l.id }}"
+                 hx-get="/listings/{{ l.id }}/drawer" hx-target="#drawer-body" hx-swap="innerHTML"
+                 @click="$store.ui.drawerOpen = true; window.setActiveListing('{{ l.id }}')">
+                <span class="shrink-0 rounded-full bg-accent-600 text-white text-xs font-semibold w-6 h-6 flex items-center justify-center">{{ l.rank }}</span>
+                <span class="truncate flex-1">{{ l.title or "Bez nazwy" }}</span>
+                <span class="font-semibold shrink-0">{{ display.display_value(l, fields.FIELDS_BY_KEY["suma_miesieczna"]) }}</span>
+            </div>
+            {% else %}<div class="text-zinc-500 text-sm">Brak danych.</div>{% endfor %}
+        </div>
+    </div>
+</div>

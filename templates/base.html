@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pl" x-data="{ dark: localStorage.getItem('dark') !== 'false',
+                          sidebarOpen: window.matchMedia('(min-width: 768px)').matches }"
+      x-init="$watch('dark', v => { localStorage.setItem('dark', v); document.documentElement.classList.toggle('dark', v) }); document.documentElement.classList.toggle('dark', dark)"
+      :class="{ 'dark': dark }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ APP_NAME }}{% if view %} – {{ NAV_LABELS.get(view, view) }}{% endif %}</title>
+    <!-- Static favicon can't react to the in-page dark-mode toggle, only the
+         OS/browser-level preference - two tags + prefers-color-scheme covers
+         that; LOGO_LIGHT is the fallback for browsers ignoring media on
+         <link rel="icon">. -->
+    <link rel="icon" type="image/png" href="{{ LOGO_DARK }}" media="(prefers-color-scheme: dark)">
+    <link rel="icon" type="image/png" href="{{ LOGO_LIGHT }}">
+    <meta name="theme-color" content="#7c3aed">
+    {# ?v=<mtime> so a Tailwind rebuild actually reaches the browser - see
+       core/infra/templating.py:asset_version(). Without it the URL never
+       changes and a cached stylesheet silently survives every restyle. #}
+    <link rel="stylesheet" href="/static/css/output.css?v={{ asset_version("css/output.css") }}">
+    <style>
+      @keyframes tour-resume-pulse { 0%, 100% { background:#18181b; color:#d4d4d8; } 50% { background:#7c3aed; color:#fff; } }
+      #tour-launcher.tour-resume-pulse { animation: tour-resume-pulse 2.8s ease-in-out infinite; }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <!-- Plain classic scripts, no bundler and no ES modules: they share one
+         global scope, so load order only matters for top-level `let`/`const`
+         (temporal dead zone), not for function calls that happen later at
+         runtime. core.js declares the shared state the rest read, so it goes
+         first; the others are independent of each other. -->
+    <script src="/static/js/core.js?v={{ asset_version("js/core.js") }}"></script>
+    <script src="/static/js/drawer.js?v={{ asset_version("js/drawer.js") }}"></script>
+    <script src="/static/js/forms.js?v={{ asset_version("js/forms.js") }}"></script>
+    <script src="/static/js/rank-drag.js?v={{ asset_version("js/rank-drag.js") }}"></script>
+    <script src="/static/js/map.js?v={{ asset_version("js/map.js") }}"></script>
+    <script src="/static/js/money-field.js?v={{ asset_version("js/money-field.js") }}"></script>
+    {# tour.js defines the engine; tour-steps.js calls registerTourSteps() and
+       must load after it. Both last, so every window.* they lean on exists. #}
+    <script src="/static/js/tour.js?v={{ asset_version("js/tour.js") }}"></script>
+    <script src="/static/js/tour-steps.js?v={{ asset_version("js/tour-steps.js") }}"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body class="h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans"
+      hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
+<div id="nav-progress" class="nav-progress htmx-indicator"></div>
+<div class="flex h-full flex-col">
+
+    <!-- Top bar -->
+    <header class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-zinc-200 dark:border-zinc-800 px-4 py-2 shrink-0">
+        <span class="flex items-center gap-2">
+            <img :src="dark ? '{{ LOGO_DARK }}' : '{{ LOGO_LIGHT }}'" class="h-6 w-6 object-contain" alt="">
+            <span class="font-semibold text-lg">{{ APP_NAME }}</span>
+        </span>
+        {% if DEMO_MODE %}
+        <span class="rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-800 dark:bg-violet-950 dark:text-violet-200">Demo portfolio · dane syntetyczne</span>
+        {% endif %}
+        {% include "partials/_nav_bar.html" %}
+        {% include "partials/_search_form.html" %}
+        {% if not DEMO_MODE %}
+        <button class="btn" @click="ingestOpen = true; $refs.ingestForm.reset(); $refs.ingestProgress.innerHTML = ''; $nextTick(() => $refs.ingestUrls.focus())">+ Dodaj</button>
+        {% endif %}
+        <button class="btn-secondary" @click="dark = !dark" title="Tryb ciemny/jasny" aria-label="Tryb ciemny/jasny">
+            <span x-text="dark ? '☀' : '🌙'"></span>
+        </button>
+        {% if current_user %}
+        {# Sits next to the theme toggle rather than inside the account menu:
+           someone who abandoned the tour is exactly the person who won't
+           think to look under their own email address for it. A plain link,
+           not a JS call - the tour has to be able to start on /galeria from
+           any page, and ?samouczek=1 is picked up by static/js/tour.js. #}
+        <a id="tour-launcher" href="/galeria?samouczek=1" class="btn-secondary" title="Uruchom samouczek" aria-label="Uruchom samouczek">🎓</a>
+        {% endif %}
+        <a href="/pomoc" class="btn-secondary ml-auto">O projekcie</a>
+    </header>
+
+    <div class="flex flex-1 min-h-0">
+        {% include "partials/_sidebar_region.html" %}
+
+        <!-- Main content -->
+        {# min-w-0: a flex item's default min-width is auto (its content's
+           intrinsic width), not 0 - without this, opening the drawer at
+           w-full on a narrow viewport couldn't shrink #main-content enough
+           to fit both siblings in the row, and the whole page overflowed
+           horizontally. Invisible on desktop (plenty of room) and masked on
+           mobile until now by the sidebar defaulting open. #}
+        <main id="main-content" class="flex-1 min-w-0 overflow-y-auto p-4">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Detail drawer - a collapsible flex sibling (same width-collapse
+             technique as the filter sidebar above) at sm: and up, so opening
+             it resizes #main-content instead of covering it. Below sm there
+             is no width to resize into - even a fully-shrunk gallery grid
+             (auto-fill, minmax(240px,1fr)) needs ~240px, more than a phone
+             has left over once the drawer takes any meaningful width - so it
+             becomes a fixed full-screen overlay there instead (its own
+             "Szczegóły" header + ✕ below already work as a sheet's chrome). -->
+        <aside id="drawer-panel"
+               :class="$store.ui.drawerOpen ? 'w-full fixed inset-0 z-40 sm:static sm:inset-auto sm:w-[420px]' : 'w-0'"
+               class="shrink-0 overflow-hidden transition-all duration-200 bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 shadow-xl">
+            <div class="w-full sm:w-[420px] h-full overflow-y-auto">
+                <div class="flex items-center justify-between p-3 border-b border-zinc-200 dark:border-zinc-800">
+                    <span class="font-medium">Szczegóły</span>
+                    <button class="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200" @click="$store.ui.drawerOpen = false; window.clearActiveListing && window.clearActiveListing()">✕</button>
+                </div>
+                <div id="drawer-body" class="p-4"></div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+</body>
+</html>

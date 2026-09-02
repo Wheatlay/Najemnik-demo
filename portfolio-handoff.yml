@@ -1,0 +1,44 @@
+project: Najemnik
+kind: reduced_flagship_code_showcase
+repository:
+  url: https://github.com/Wheatlay/Najemnik-demo
+  visibility: pending_batch_review
+demo:
+  url: null
+  status: pending_render_connection
+  health_endpoint: /healthz
+  data: fully_synthetic
+  model_output: precomputed_and_labelled
+  cold_start_warning: Render free services may spin down while idle.
+technology:
+  - Python 3.12
+  - FastAPI
+  - SQLModel / SQLAlchemy
+  - SQLite
+  - Jinja2 / HTMX / Alpine.js / Tailwind CSS
+  - Leaflet
+  - Ollama (selected source sample; never called by the hosted showcase)
+  - Pytest / Playwright
+  - Docker / Render
+architecture_summary: >-
+  Deliberately reduced vertical slice of the original rental decision workspace:
+  server-rendered UI, deterministic cost/ranking logic, isolated guest state and
+  recorded evidence. Selected local-model enrichment code is retained for review,
+  but it is not wired into the hosted showcase.
+guided_recruiter_flow:
+  - Follow the gallery tour.
+  - Filter and open synthetic listings.
+  - Compare advertised, monthly, annual, and move-in costs.
+  - Inspect map, rankings, notes, and recorded evidence.
+  - Edit a value and reset the isolated guest session.
+screenshots: []
+fallback_assets:
+  - fixtures/demo/photos/a/01.webp
+  - fixtures/demo/photos/b/01.webp
+  - fixtures/demo/photos/c/01.webp
+verified_claims:
+  - Working rental filtering, comparison, cost analysis, map, ranking, notes, and editing flows.
+  - Selected source preserves the real local Ollama enrichment architecture.
+limitations:
+  - Hosted mode disables registration, email, scraping, imports, extension tokens, administration, and live model calls.
+  - All public data and images are synthetic.

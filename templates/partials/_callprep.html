@@ -1,0 +1,62 @@
+{# Deterministic call-prep / viewing checklist. Rendered inline in the drawer
+   from `cp` (core/pipeline/enrich/callprep_bank.build_callprep) - no AI, no fetch. The
+   ticked state is intentionally ephemeral (a live tick-off list for one call
+   / one visit), so it resets on reopen. #}
+{% macro _checklist(items) %}
+<ul class="space-y-1">
+    {% for item in items %}
+    <li x-data="{ done: false }">
+        <label class="flex items-start gap-2 text-sm cursor-pointer">
+            <input type="checkbox" x-model="done" class="mt-0.5 accent-accent-500 shrink-0">
+            <span :class="done ? 'line-through text-zinc-400' : ''">{{ item }}</span>
+        </label>
+    </li>
+    {% endfor %}
+</ul>
+{% endmacro %}
+<div class="card p-2 mb-3" data-tour="callprep"
+     x-data="{ open: localStorage.getItem('grp:callprep') === 'true', tab: 'phone' }"
+     x-effect="localStorage.setItem('grp:callprep', open);
+               if (open) $nextTick(() => requestAnimationFrame(() => window.autosizeAllTextareas && autosizeAllTextareas($el)))">
+    {# data-tour-toggle: the guided tour freezes this section's open/closed
+       state while it runs (static/js/tour.js). Marks the toggle only - the
+       tabs and fields inside must stay clickable. #}
+    <button type="button" data-tour-toggle
+            class="w-full flex items-center justify-between font-medium text-sm py-1" @click="open = !open">
+        <span>📞 Pytania</span>
+        <span x-text="open ? '▾' : '▸'"></span>
+    </button>
+
+    <div x-show="open" x-cloak class="mt-1">
+        <div class="flex gap-1 mb-2">
+            <button type="button" class="status-pill"
+                    :class="tab === 'phone' ? 'bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-300 dark:ring-accent-700' : 'ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 text-zinc-500 dark:text-zinc-400'"
+                    @click="tab = 'phone'">Na telefon</button>
+            <button type="button" class="status-pill"
+                    :class="tab === 'visit' ? 'bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-300 ring-1 ring-inset ring-accent-300 dark:ring-accent-700' : 'ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 text-zinc-500 dark:text-zinc-400'"
+                    @click="tab = 'visit'">Na wizycie</button>
+        </div>
+
+        {# ---- Na telefon ---- #}
+        <div x-show="tab === 'phone'" class="space-y-2">
+            {% if cp.missing %}
+            <div>
+                <div class="field-label mb-1">Uzupełnij braki</div>
+                {{ _checklist(cp.missing) }}
+            </div>
+            {% else %}
+            <div class="text-xs text-zinc-500">Wszystkie dane wyglądają na kompletne — pytaj tylko poniżej.</div>
+            {% endif %}
+            <div>
+                <div class="field-label mb-1">Zawsze zapytaj</div>
+                {{ _checklist(cp.always) }}
+            </div>
+        </div>
+
+        {# ---- Na wizycie ---- #}
+        <div x-show="tab === 'visit'" x-cloak class="space-y-2">
+            <div class="field-label mb-1">Sprawdź na miejscu</div>
+            {{ _checklist(cp.viewing) }}
+        </div>
+    </div>
+</div>

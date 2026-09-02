@@ -1,0 +1,219 @@
+{% macro _f_border(bucket) %}{{ {"pay": "border-red-400 dark:border-red-500",
+                                  "free": "border-emerald-400 dark:border-emerald-500",
+                                  "unknown": "border-amber-400 dark:border-amber-500",
+                                  "neutral": "border-zinc-300 dark:border-zinc-600"}[bucket] }}{% endmacro %}
+
+{% macro field_row(listing, f, target, swap, show_label=true) %}
+<div class="mb-2" data-field="{{ f.key }}">
+    {% if show_label %}
+    {% set prov = display.ai_provenance(listing, f) %}
+    <div class="field-label mb-0.5 flex items-center gap-1.5">
+        {% if prov %}
+        {# The badge is the claim ("a model wrote this, not the portal"); the
+           tooltip is the receipt. Where no verbatim quote was recorded we say
+           so plainly rather than implying evidence we don't have. #}
+        <span class="ai-badge" tabindex="0"
+              aria-label="{{ 'Model oparł się na cytacie z ogłoszenia: ' ~ prov.quote if prov.quote else 'Wywnioskowane przez model z treści ogłoszenia' }}">
+            <span aria-hidden="true">✨ AI</span>
+            <span class="ai-badge-pop" role="tooltip">
+                {% if prov.quote %}
+                <span class="ai-badge-pop-label">Model oparł się na tym fragmencie ogłoszenia:</span>
+                <span class="ai-badge-quote">„{{ prov.quote }}”</span>
+                {% else %}
+                <span class="ai-badge-pop-label">Wywnioskowane przez model z treści ogłoszenia.</span>
+                <span class="ai-badge-pop-note">Ta odpowiedź nie ma zapisanego cytatu - sprawdź w ogłoszeniu, jeśli to dla ciebie ważne.</span>
+                {% endif %}
+                <span class="ai-badge-pop-note">Wpisz własną wartość, żeby zastąpić tę odpowiedź.</span>
+            </span>
+        </span>
+        {% endif %}
+        <span>{{ f.label }}</span>
+    </div>
+    {% endif %}
+    {% if f.computed %}
+    {% if f.key == 'suma_miesieczna' %}
+    <div class="field-computed-money {{ cost_ctx.suma_miesieczna_color(listing) }}">{{ display.display_value(listing, f) }}</div>
+    {% elif f.key == 'suma_wejscia' %}
+    <div class="field-computed-money {{ cost_ctx.suma_wejscia_color(listing) }}">{{ display.display_value(listing, f) }}</div>
+    {% elif f.key == 'ai_comment' %}
+    <div class="field-computed whitespace-pre-wrap font-normal text-sm leading-snug min-h-[5rem] py-2">{{ display.display_value(listing, f) or "—" }}</div>
+    {% else %}
+    <div class="field-computed">{{ display.display_value(listing, f) }}</div>
+    {% endif %}
+    {% elif f.type == "textarea" %}
+    <textarea class="field-input autosize" rows="2" name="value"
+              hx-patch="/listings/{{ listing.id }}/field" hx-trigger="blur changed"
+              hx-vals='{"key": "{{ f.key }}", "render": "{{ swap }}"}'
+              hx-target="{{ target }}" hx-swap="{{ 'innerHTML' if swap == 'drawer' else 'outerHTML' }}"
+              >{{ display.raw_value(listing, f) }}</textarea>
+    {% elif f.type == "smart_money" %}
+    {% set val = display.raw_value(listing, f) %}
+    {# A cycling status pill, plus kwota (numbers only, unrolls open only for
+       "tak") and notatka (free prose, hidden until hovered/focused/non-empty)
+       as separate boxes. static/js/money-field.js (moneyField) carries the
+       interaction logic and the reasoning behind each of its non-obvious
+       pieces: why the pill needs justify-center explicitly, why the kwota
+       wrapper needs its own flex items-center, why its clipping is toggled
+       by JS rather than a CSS overflow-x rule, and why the status save is
+       deliberately delayed.
+
+       `group` on this outer div is what lets notatka react to hovering
+       ANYWHERE in the field (pill included), not just the note box itself. #}
+    <div class="group rounded-md border-l-4 {{ _f_border(money.bucket(val, f.bool_colors)) }} pl-2"
+         x-data='moneyField({{ {
+             "status": (val.get("status") if val else "brak_informacji"),
+             "amount": (val.get("amount") if val and val.get("amount") is not none else ""),
+             "note": (val.get("note") if val and val.get("note") else ""),
+             "key": f.key, "render": swap,
+             "url": "/listings/" ~ listing.id ~ "/field",
+             "target": target,
+             "swap": ("innerHTML" if swap == "drawer" else "outerHTML"),
+             "trueBucket": (f.bool_colors[0] if f.bool_colors else "pay"),
+         } | tojson }})'>
+        <div class="flex items-center gap-1 py-0.5">
+            {# Colour comes from pillBucket, not raw status: "tak" means
+               "you're on the hook" for kaucja (red) but "you have one" for
+               parking (green) - see money_field.bucket()'s docstring and
+               FieldDef.bool_colors on parking/piwnica in core/domain/fields.py. #}
+            <button type="button" @click="cycle()" title="Kliknij, żeby zmienić"
+                    class="status-pill justify-center text-xs font-medium w-24 shrink-0"
+                    :class="{
+                        'ring-1 ring-inset ring-red-400 text-red-600 dark:text-red-400': pillBucket === 'pay',
+                        'ring-1 ring-inset ring-emerald-400 text-emerald-600 dark:text-emerald-400': pillBucket === 'free',
+                        'ring-1 ring-inset ring-amber-400 text-amber-600 dark:text-amber-400': pillBucket === 'unknown'
+                    }"
+                    x-text="{tak: 'Tak', nie: 'Brak', brak_informacji: 'Nie wiadomo'}[status]"></button>
+            {# The ring's left-edge breathing room is margin on the INPUT,
+               not padding on this wrapper: with box-sizing border-box an
+               element can never render narrower than its own padding, so a
+               pl-0.5 here kept the "closed" wrapper stuck at 2px instead of
+               0 - a sliver of the input's border stayed visible. Margin
+               isn't part of the border box, so the wrapper genuinely
+               reaches 0. #}
+            <div class="shrink-0 flex items-center transition-all duration-200"
+                 :class="revealed ? 'overflow-visible' : 'overflow-hidden'"
+                 :style="`width: ${status === 'tak' ? '5rem' : '0px'}`"
+                 @transitionend="onSlideSettled($event.propertyName)">
+                <input type="text" inputmode="numeric" maxlength="4" x-model="amount"
+                       @input="amount = amount.replace(/\D/g, '').slice(0, 4)"
+                       @change="save()" @keydown.enter.prevent="save()"
+                       placeholder="kwota" class="field-input text-xs w-[4.5rem] ml-0.5 shrink-0">
+            </div>
+            {# Hidden at rest, unrolling on hover/focus of the WHOLE field
+               (group-hover/group-focus-within, not just this box) so you
+               don't need to aim for a thin sliver to discover it's there.
+               group-has-[input:not(:placeholder-shown)] is what keeps it
+               open once a note actually exists, without any JS: the input's
+               own :placeholder-shown state already tracks "has a value" -
+               scoped to .js-notatka specifically, since an unqualified
+               :has(input:not(:placeholder-shown)) would also match kwota
+               having a value (deposit's kwota is filled far more often than
+               its notatka is), permanently revealing an empty note box any
+               time the amount was set. :focus-within is what satisfies
+               "don't hide it again if the user is typing and moves the
+               mouse away" - it stays true for as long as the input has
+               focus, independent of :hover, and only lets go on blur (by
+               which point, if they typed something, the has-value rule
+               above has already taken over). #}
+            <div class="overflow-hidden shrink-0 transition-all duration-200 w-0
+                        group-hover:w-40 group-focus-within:w-40
+                        group-has-[.js-notatka:not(:placeholder-shown)]:w-40">
+                <input type="text" x-model="note" @change="save()" @keydown.enter.prevent="save()"
+                       placeholder="notatka" class="field-input text-xs w-40 js-notatka">
+            </div>
+        </div>
+    </div>
+    {% elif f.type == "select_enum" %}
+    <select class="field-input" name="value"
+            hx-patch="/listings/{{ listing.id }}/field" hx-trigger="change"
+            hx-vals='{"key": "{{ f.key }}", "render": "{{ swap }}"}'
+            hx-target="{{ target }}" hx-swap="{{ 'innerHTML' if swap == 'drawer' else 'outerHTML' }}">
+        {% set current = display.raw_value(listing, f) %}
+        <option value="" {% if not current or current == "brak informacji" %}selected{% endif %}>brak informacji</option>
+        {% for opt in f.options %}
+        <option value="{{ opt }}" {% if current == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+    </select>
+    {% elif f.type == "select_bool" %}
+    {% set true_label, false_label = f.bool_labels or ("tak", "nie") %}
+    {% set value = listing[f.key] %}
+    {# bool_colors, when set on the field, marks which answer is favorable
+       (e.g. pets_allowed=tak is good news) using the same red/green
+       buckets as the smart cost fields; fields without it keep the
+       neutral accent look, since not every yes/no answer has a "better"
+       side (e.g. a plain fact with no good/bad direction).
+
+       Each <option> carries ITS OWN bucket's color class rather than one
+       class applied to the whole <select> - options inherit a shared
+       select-level color, so with only one class every option showed
+       whatever the currently-selected value's color was (e.g. picking
+       "brak informacji" made tak/nie both render amber too, not just the
+       one actually-unknown option). Per-option classes also mean the
+       closed control correctly shows its own selected option's true
+       color, since browsers render a native select using the selected
+       <option>'s own style. #}
+    {% set true_bucket = f.bool_colors[0] if f.bool_colors else "neutral" %}
+    {% set false_bucket = f.bool_colors[1] if f.bool_colors else "neutral" %}
+    {% set current_bucket = "unknown" if value is none else (true_bucket if value else false_bucket) %}
+    {% set border = {"pay": "border-red-400 dark:border-red-500",
+                      "free": "border-emerald-400 dark:border-emerald-500",
+                      "unknown": "border-amber-400 dark:border-amber-500",
+                      "neutral": "border-accent-500"}[current_bucket] %}
+    {% set option_cls = {"pay": "smart-pay", "free": "smart-free",
+                          "unknown": "smart-missing", "neutral": ""} %}
+    <div class="rounded-md border-l-4 {{ border }} pl-2">
+        <select class="field-input" name="value"
+                hx-patch="/listings/{{ listing.id }}/field" hx-trigger="change"
+                hx-vals='{"key": "{{ f.key }}", "render": "{{ swap }}"}'
+                hx-target="{{ target }}" hx-swap="{{ 'innerHTML' if swap == 'drawer' else 'outerHTML' }}">
+            {% if f.nullable %}
+            <option value="" class="{{ option_cls['unknown'] }}" {% if value is none %}selected{% endif %}>brak informacji</option>
+            {% endif %}
+            <option value="true" class="{{ option_cls[true_bucket] }}" {% if value == true %}selected{% endif %}>{{ true_label }}</option>
+            <option value="false" class="{{ option_cls[false_bucket] }}" {% if value == false %}selected{% endif %}>{{ false_label }}</option>
+        </select>
+    </div>
+    {% elif f.type == "date" %}
+    <input type="date" class="field-input" name="value" value="{{ display.raw_value(listing, f) or '' }}"
+           hx-patch="/listings/{{ listing.id }}/field" hx-trigger="change"
+           hx-vals='{"key": "{{ f.key }}", "render": "{{ swap }}"}'
+           hx-target="{{ target }}" hx-swap="{{ 'innerHTML' if swap == 'drawer' else 'outerHTML' }}">
+    {% elif f.type == "datetime" %}
+    <input type="datetime-local" class="field-input" name="value" value="{{ display.raw_value(listing, f) }}"
+           hx-patch="/listings/{{ listing.id }}/field" hx-trigger="change"
+           hx-vals='{"key": "{{ f.key }}", "render": "{{ swap }}"}'
+           hx-target="{{ target }}" hx-swap="{{ 'innerHTML' if swap == 'drawer' else 'outerHTML' }}">
+    {% elif f.type == "number" %}
+    {% set hint = display.other_costs_hint(listing) if f.key == "other_costs" else "" %}
+    <input type="number" step="any" class="field-input" name="value" value="{{ display.raw_value(listing, f) if display.raw_value(listing, f) is not none else '' }}"
+           {% if hint %}placeholder="{{ hint }}" title="Bez ręcznej wartości suma miesięczna używa tej kwoty z analizy AI ({{ hint }}). Wpisz liczbę, aby ją nadpisać."{% endif %}
+           hx-patch="/listings/{{ listing.id }}/field" hx-trigger="blur changed"
+           hx-vals='{"key": "{{ f.key }}", "render": "{{ swap }}"}'
+           hx-target="{{ target }}" hx-swap="{{ 'innerHTML' if swap == 'drawer' else 'outerHTML' }}">
+    {% if f.key == "floor" and display.top_floor_heat_note(listing) %}
+    <div class="text-xs text-amber-600 dark:text-amber-400 mt-1">☀ {{ display.top_floor_heat_note(listing) }}</div>
+    {% endif %}
+    {% elif not f.editable %}
+    <div class="text-sm">{{ display.display_value(listing, f) }}</div>
+    {% else %}
+    <input type="text" class="field-input" name="value" value="{{ display.raw_value(listing, f) }}"
+           hx-patch="/listings/{{ listing.id }}/field" hx-trigger="blur changed"
+           hx-vals='{"key": "{{ f.key }}", "render": "{{ swap }}"}'
+           hx-target="{{ target }}" hx-swap="{{ 'innerHTML' if swap == 'drawer' else 'outerHTML' }}">
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro stars(listing, key, label, target, swap) %}
+<div class="mb-2">
+    <div class="field-label mb-0.5">{{ label }}</div>
+    <div class="flex gap-0.5">
+        {% set current = listing[key] or 0 %}
+        {% for i in range(1, 6) %}
+        <button type="button" class="text-lg leading-none {{ 'text-amber-400' if i <= current else 'text-zinc-300 dark:text-zinc-700' }}"
+                hx-patch="/listings/{{ listing.id }}/field" hx-vals='{"key": "{{ key }}", "value": "{{ i }}", "render": "{{ swap }}"}'
+                hx-target="{{ target }}" hx-swap="{{ 'innerHTML' if swap == 'drawer' else 'outerHTML' }}">★</button>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}

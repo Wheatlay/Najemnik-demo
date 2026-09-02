@@ -1,0 +1,611 @@
+@import "tailwindcss";
+
+/* All color tokens (accent scale, status colors, price-signal colors) live
+   in brand.css - the one file to edit to recolor the app. This file is
+   layout/shape only. */
+@import "./brand.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Number inputs are typed into directly (SPEC: no clutter from spinners). */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  .field-label {
+    @apply text-xs font-medium text-zinc-500 dark:text-zinc-400;
+  }
+  .field-input {
+    @apply w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900
+           px-2 py-1 text-sm text-zinc-900 dark:text-zinc-100
+           focus:outline-none focus:ring-2 focus:ring-accent-500;
+  }
+  .field-computed {
+    @apply rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-sm font-semibold
+           text-zinc-900 dark:text-zinc-100;
+  }
+  .field-computed-money {
+    @apply rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-sm font-bold;
+  }
+  /* .smart-pay/-free/-missing live in brand.css alongside the rest of the
+     palette. */
+  .card {
+    @apply rounded-lg bg-white dark:bg-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800;
+  }
+  /* Collapsible section headings in the detail drawer (LOKALIZACJA, KOSZT
+     MIESIĘCZNY…). They used to be plain `font-medium text-sm`, near-identical
+     in weight to the .field-label rows underneath, so the sections ran
+     together while scrolling a long drawer.
+
+     `sticky top-0` pins each heading inside the drawer's own scroll
+     container while its section is on screen, and the next heading pushes it
+     out of the way - so the background must stay fully opaque, or the field
+     rows scroll visibly through it. z-10 keeps it above the rows for the
+     same reason.
+
+     Centred text with the chevron taken out of flow (absolute right-2):
+     `justify-between` would push the label off-centre by the chevron's own
+     width. */
+  .drawer-group-header {
+    @apply sticky top-0 z-10 w-full relative
+           rounded-md bg-zinc-100 dark:bg-zinc-800
+           px-3 py-1.5 my-1
+           text-center text-sm font-semibold tracking-widest
+           text-accent-700 dark:text-accent-300
+           hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors;
+  }
+  /* Admin dev panel (static/js/devtools.js). z-index above the tour overlay
+     on purpose - its whole job is being usable *while* the tour is running. */
+  .devtools-fab {
+    @apply fixed bottom-3 left-3 w-8 h-8 rounded-full
+           bg-zinc-800 text-zinc-300 text-sm
+           hover:bg-zinc-700 shadow-lg opacity-60 hover:opacity-100;
+    z-index: 100;
+  }
+  .devtools-panel {
+    @apply fixed bottom-3 left-3 w-64 rounded-lg p-2
+           bg-zinc-900 text-zinc-200 shadow-2xl ring-1 ring-zinc-700;
+    z-index: 101;
+  }
+  .devtools-head {
+    @apply flex items-center justify-between mb-1.5;
+  }
+  .devtools-close {
+    @apply text-zinc-500 hover:text-zinc-200 text-xs;
+  }
+  .devtools-state {
+    @apply text-[11px] leading-snug bg-zinc-950/60 rounded p-1.5 mb-2 break-words;
+  }
+  .devtools-dim {
+    @apply text-zinc-500;
+  }
+  .devtools-section {
+    @apply mb-2;
+  }
+  .devtools-label {
+    @apply text-[10px] uppercase tracking-wide text-zinc-500 mb-1;
+  }
+  .devtools-row {
+    @apply flex flex-wrap gap-1;
+  }
+  .devtools-btn {
+    @apply rounded bg-zinc-800 hover:bg-zinc-700 px-2 py-1 text-[11px];
+  }
+  /* Guided tour (static/js/tour.js). Four panels rather than one masked
+     overlay: the gap between them is the hole, so the highlighted control
+     stays genuinely clickable and everything else is both dimmed and
+     click-blocked. z-index sits above the drawer (z-40 action bar, drawer
+     shadow) but below nothing else that matters. */
+  .tour-panel {
+    @apply fixed bg-zinc-950/70;
+    z-index: 90;
+  }
+  .tour-ring {
+    @apply fixed rounded-lg pointer-events-none;
+    z-index: 91;
+    box-shadow: 0 0 0 3px var(--color-accent-400), 0 0 24px 4px rgb(0 0 0 / 0.45);
+  }
+  .tour-card {
+    @apply fixed rounded-lg bg-white dark:bg-zinc-900 p-4 shadow-2xl
+           ring-1 ring-zinc-200 dark:ring-zinc-800;
+    z-index: 92;
+  }
+  .tour-card-head {
+    @apply flex items-center justify-between mb-1;
+  }
+  .tour-card-step {
+    @apply text-xs font-semibold text-zinc-400;
+  }
+  .tour-card-close {
+    @apply text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 text-sm;
+  }
+  .tour-card-title {
+    @apply font-semibold text-base mb-1;
+  }
+  .tour-card-text {
+    @apply text-sm text-zinc-600 dark:text-zinc-300;
+  }
+  .tour-card-actions {
+    @apply flex items-center justify-end gap-2 mt-3;
+  }
+  .tour-card-hint {
+    @apply text-xs font-medium text-accent-600 dark:text-accent-300;
+  }
+  /* Reference points from /ustawienia, drawn on /mapa (map.js
+     renderCommutePoints). Teal and pill-shaped on purpose: every listing
+     marker is either a violet price bubble or a round status dot, so a
+     labelled teal pill can't be misread as somewhere you could rent.
+     pointer-events:none keeps it from swallowing clicks meant for a listing
+     marker underneath - it isn't clickable by design. */
+  .map-commute-marker {
+    @apply rounded-full px-2 py-0.5 text-xs font-semibold text-white whitespace-nowrap
+           bg-teal-600 ring-2 ring-white dark:ring-zinc-900 shadow-md;
+    pointer-events: none;
+  }
+  /* "Co dalej?" block (templates/partials/_next_step.html) - accent left
+     border rather than a full tint, so it reads as a prompt attached to the
+     listing rather than as another card competing with the cost summary. */
+  .next-step {
+    @apply mb-3 rounded-md border-l-4 border-accent-500
+           bg-accent-50 dark:bg-accent-950/30 p-2;
+  }
+  .next-step-label {
+    @apply text-xs font-semibold uppercase tracking-wide
+           text-accent-700 dark:text-accent-300 mb-1.5;
+  }
+  /* Accent-tinted notice, distinct from both .card (data) and the amber
+     fees_note (a warning about a listing). The dismissible onboarding
+     callouts that introduced these were replaced by the guided tour; the
+     demo banner (templates/partials/_demo_banner.html) still uses them. */
+  .hint {
+    @apply flex items-start gap-3 rounded-lg mb-3 px-4 py-3
+           bg-accent-50 dark:bg-accent-900/25
+           ring-1 ring-accent-200 dark:ring-accent-800;
+  }
+  .hint-body {
+    @apply flex-1 min-w-0;
+  }
+  .hint-title {
+    @apply text-sm font-semibold text-accent-800 dark:text-accent-200 mb-0.5;
+  }
+  .hint-text {
+    @apply text-sm text-zinc-700 dark:text-zinc-300;
+  }
+  .hint-cta {
+    @apply inline-block mt-1 text-sm font-medium text-accent-700 dark:text-accent-300 hover:underline;
+  }
+  .hint-dismiss {
+    @apply shrink-0 text-accent-400 hover:text-accent-700 dark:hover:text-accent-200;
+  }
+  /* Numbered install steps on /rozszerzenie. A connector line runs from each
+     number down to the next, so three steps read as one sequence rather than
+     three unrelated blocks - which is what a plain list looked like once the
+     middle step grew its own two sub-boxes. */
+  .step-list {
+    @apply relative;
+  }
+  .step-item {
+    @apply relative flex gap-4 pb-7 last:pb-0;
+  }
+  .step-item:not(:last-child)::before {
+    content: "";
+    @apply absolute left-3.5 top-8 bottom-2 w-px -translate-x-1/2
+           bg-zinc-200 dark:bg-zinc-700;
+  }
+  .step-num {
+    @apply relative z-10 shrink-0 grid place-items-center w-7 h-7 rounded-full
+           bg-accent-600 text-white text-xs font-semibold
+           ring-4 ring-white dark:ring-zinc-900;
+  }
+  .step-body {
+    @apply flex-1 min-w-0 pt-0.5;
+  }
+  .step-title {
+    @apply text-sm font-semibold mb-1.5;
+  }
+  .step-text {
+    @apply text-sm text-zinc-600 dark:text-zinc-300;
+  }
+  /* Per-browser blocks inside a step. */
+  .step-box {
+    @apply rounded-lg bg-zinc-100 dark:bg-zinc-800/60 p-4;
+  }
+  .step-box-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2;
+  }
+  .step-note {
+    @apply text-xs text-zinc-400 mt-2.5;
+  }
+  .step-kbd {
+    @apply text-xs bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded select-all;
+  }
+
+  .drawer-group-chevron {
+    @apply absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500;
+  }
+  .status-pill {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+  .btn {
+    @apply inline-flex items-center gap-1 rounded-md bg-accent-600 px-3 py-1.5 text-sm font-medium
+           text-white hover:bg-accent-500 disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-1 rounded-md bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 text-sm
+           font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700;
+  }
+
+  /* Cross-view "currently open in the drawer" marker - state lives in JS
+     (core.js setActiveListing/clearActiveListing), not the server, since the
+     same listing can be marked simultaneously on a gallery card and a map
+     marker. Declared after .card so its box-shadow wins over the card's own
+     ring at equal specificity. */
+  .listing-active-outline {
+    @apply ring-2 ring-accent-500 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-950;
+  }
+
+  /* Compare table */
+  .compare-group-header {
+    @apply text-xs font-semibold uppercase tracking-wide px-2 py-1 border-b-2;
+  }
+  .compare-group-end {
+    @apply border-r-2 border-zinc-300 dark:border-zinc-700;
+  }
+  .compare-row:hover {
+    @apply bg-accent-50/60 dark:bg-accent-950/20;
+  }
+  .compare-row:nth-child(even) {
+    @apply bg-zinc-50 dark:bg-zinc-900/50;
+  }
+  .sort-active-header {
+    @apply bg-accent-200 dark:bg-accent-800;
+  }
+  .sort-active-cell {
+    @apply bg-accent-50 dark:bg-accent-950/30;
+  }
+  .col-resize-handle {
+    @apply absolute top-0 right-0 w-1.5 h-full cursor-col-resize z-20;
+  }
+  .col-resize-handle:hover, .col-resize-handle:active {
+    @apply bg-accent-400/50;
+  }
+  .autosize {
+    @apply resize-none overflow-hidden;
+  }
+  /* Compare table only (drawer wants the full autosize height) - a single
+     verbose AI note/smart-field textarea shouldn't force every row in the
+     table to that height; cap it and let the user scroll within the cell. */
+  table[data-compare-resizable] textarea.autosize {
+    @apply max-h-24 overflow-y-auto;
+  }
+
+  /* Map price-bubble markers - a plain colored dot doesn't stand out against
+     the basemap and forces a click just to see the price; a labeled bubble
+     (colored by status, like the pills elsewhere) surfaces the number that
+     actually matters at a glance. */
+  .map-price-marker {
+    --mc: var(--color-zinc-500);
+    position: relative;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: white;
+    white-space: nowrap;
+    background: var(--mc);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+  }
+  .map-price-marker::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--mc);
+  }
+
+  /* The plain 14x14px status dot is well under a comfortable touch target -
+     this expands the *tappable* area via an invisible ::before rather than
+     growing the dot itself, since MapLibre positions the marker element
+     directly via its own transform (map.js:styleMarkerEl's comment) and
+     shouldn't have its real box size touched. position:relative is safe
+     here the same way it already is on .map-price-marker above. */
+  .map-status-marker {
+    position: relative;
+  }
+  .map-status-marker::before {
+    content: "";
+    position: absolute;
+    inset: -11px;
+  }
+
+  /* Ring around whichever marker's listing is open in the drawer - `outline`
+     rather than `box-shadow` because the plain status-dot marker sets its own
+     box-shadow inline (styleMarkerEl in map.js), which would otherwise win
+     over any box-shadow set here at equal specificity. */
+  .marker-active {
+    outline: 3px solid var(--color-accent-500);
+    outline-offset: 2px;
+  }
+
+  /* Top-left on-map options (display mode + basemap style) - kept separate
+     from MapLibre's own top-right zoom control so the two never compete for
+     the same corner. Styled as floating segmented-control pills (like a
+     native map control) rather than a form card, since a <select>-in-a-box
+     reads as a settings dialog dropped onto the map, not part of it. */
+  .map-controls-panel {
+    @apply absolute top-3 left-3 z-10 flex flex-col items-start gap-1.5;
+  }
+  .map-seg-group {
+    /* flex-wrap is a safety net, not the primary fix (the smaller base-size
+       buttons below should fit the "mode" group's 4 buttons on a ~360px-wide
+       map) - it only breaks the pill's rounded corners into two rows if the
+       narrowest supported width still doesn't fit. */
+    @apply flex flex-wrap rounded-md overflow-hidden shadow-md ring-1 ring-black/10 dark:ring-white/15
+           bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm;
+  }
+  .map-seg-btn {
+    @apply px-2 py-1 text-[11px] sm:px-2.5 sm:py-1.5 sm:text-xs font-medium text-zinc-600 dark:text-zinc-300 whitespace-nowrap
+           hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors;
+  }
+  .map-seg-btn + .map-seg-btn {
+    @apply border-l border-zinc-200 dark:border-zinc-700;
+  }
+  .map-seg-btn.active {
+    @apply bg-accent-600 text-white hover:bg-accent-600;
+  }
+  .map-status-legend {
+    @apply flex flex-col gap-1 rounded-md bg-white/95 dark:bg-zinc-900/95 shadow-md ring-1
+           ring-black/10 dark:ring-white/15 backdrop-blur-sm px-2.5 py-2 text-xs
+           text-zinc-700 dark:text-zinc-200;
+  }
+  .map-status-legend.hidden {
+    display: none;
+  }
+  .map-status-legend-item {
+    @apply flex items-center gap-1.5;
+  }
+  .map-status-legend-dot {
+    @apply inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10;
+  }
+}
+
+/* Deliberately OUTSIDE @layer: MapLibre's own CSS (loaded from a CDN,
+   unlayered) always beats anything inside @layer components regardless of
+   selector specificity, because unlayered rules win over layered ones in
+   the cascade no matter what. The .map-price-marker rules above don't
+   collide with any MapLibre class so they're unaffected, but overriding
+   .maplibregl-popup-content/-tip must live unlayered too, or the dark-mode
+   background override silently loses to MapLibre's default white one while
+   our (layered) text-color override still wins - light text on a white box. */
+.map-hover-popup-wrap .maplibregl-popup-content {
+  padding: 8px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+  max-width: none;
+}
+.map-hover-popup-wrap .maplibregl-popup-tip {
+  display: none;
+}
+.map-hover-popup {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.map-hover-thumb {
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.map-hover-body {
+  min-width: 0;
+}
+.map-hover-title {
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-hover-meta {
+  font-size: 12px;
+  color: var(--color-zinc-500);
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.map-hover-price {
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 3px;
+  color: var(--color-accent-600);
+  white-space: nowrap;
+}
+.dark .map-hover-popup-wrap .maplibregl-popup-content {
+  background: var(--color-zinc-900);
+  color: var(--color-zinc-100);
+}
+.dark .map-hover-price {
+  color: var(--color-accent-300);
+}
+
+/* --- Seamless top-nav / filter navigation ------------------------------ */
+/* #main-content gets a named view-transition group so the browser
+   cross-fades only that region on an htmx swap (hx-swap="... transition:true"
+   in _nav_bar.html / _search_form.html / filter_sidebar.html), instead of
+   flashing/reloading the whole page the way a plain <a href> nav would.
+   Browsers without View Transitions (older Firefox/Safari) just skip the
+   animation and swap instantly - no fallback needed. */
+#main-content {
+  view-transition-name: main-content;
+}
+@keyframes main-content-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes main-content-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+::view-transition-old(main-content) {
+  animation: 120ms ease-out both main-content-fade-out;
+}
+::view-transition-new(main-content) {
+  animation: 180ms ease-out both main-content-fade-in;
+}
+
+/* Slim top loading bar shown while a nav/filter/search htmx request is in
+   flight (hx-indicator="#nav-progress"). The opacity toggle itself comes
+   from htmx's own injected .htmx-indicator rules; the extra transition-delay
+   here just keeps it from flashing on requests that settle almost
+   instantly, which is the common case against a local SQLite db. */
+.nav-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 60;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--color-accent-500), transparent);
+  background-size: 50% 100%;
+  animation: nav-progress-slide 1s linear infinite;
+}
+.nav-progress.htmx-indicator {
+  opacity: 0;
+  transition: opacity 150ms ease 150ms;
+}
+.htmx-request .nav-progress.htmx-indicator,
+.htmx-request.nav-progress.htmx-indicator {
+  opacity: 1;
+}
+@keyframes nav-progress-slide {
+  0% { background-position: -50% 0; }
+  100% { background-position: 150% 0; }
+}
+
+/* --- AI provenance badge (templates/_field_macros.html) -------------------
+   Marks a field the model authored and carries its receipt. Hover *and*
+   focus open the popover: the badge is tabbable, so the quote is reachable
+   without a pointer. The popover is positioned relative to the badge and
+   allowed to escape the field row, which is why the row itself must not
+   establish a clipping context. */
+.ai-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0 0.3rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  cursor: help;
+  color: var(--color-accent-700);
+  background: var(--color-accent-50);
+  border: 1px solid var(--color-accent-200);
+}
+.dark .ai-badge {
+  color: var(--color-accent-200);
+  background: color-mix(in oklab, var(--color-accent-950) 70%, transparent);
+  border-color: var(--color-accent-800);
+}
+.ai-badge-pop {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  z-index: 60;
+  display: none;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: max-content;
+  max-width: min(22rem, 70vw);
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-align: left;
+  white-space: normal;
+  color: var(--color-zinc-700);
+  background: white;
+  border: 1px solid var(--color-zinc-200);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+}
+.dark .ai-badge-pop {
+  color: var(--color-zinc-200);
+  background: var(--color-zinc-900);
+  border-color: var(--color-zinc-700);
+}
+.ai-badge:hover .ai-badge-pop,
+.ai-badge:focus .ai-badge-pop,
+.ai-badge:focus-within .ai-badge-pop { display: flex; }
+.ai-badge-pop-label { font-weight: 600; }
+.ai-badge-pop-note { opacity: 0.7; }
+.ai-badge-quote {
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--color-accent-400);
+  font-style: italic;
+}
+
+
+/* --- Attention-seeking hint (the extension prompt in the ingest modal) ----
+   A modifier on .hint, not .hint itself: the demo banner uses the same
+   component and is not trying to catch anyone's eye.
+
+   The card arrives a beat *after* the dialog it lives in. Appearing together
+   makes it part of the furniture; arriving late is what the eye actually
+   catches, and by then the user has taken in the paste box it relates to.
+
+   Every animation here terminates. Nothing loops: an infinite animation in
+   the gallery previously made Playwright's actionability checks wait on it,
+   and this one sits in a dialog the smoke test clicks through. Three sparks
+   is enough to be noticed and short enough to be over before it nags. */
+@keyframes hint-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+.hint-attn {
+  animation: hint-enter 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 200ms;
+}
+
+@keyframes hint-spark {
+  0%, 100% { transform: scale(1) rotate(0); }
+  35%      { transform: scale(1.3) rotate(-8deg); }
+  65%      { transform: scale(1.15) rotate(6deg); }
+}
+.hint-spark {
+  display: inline-block;
+  transform-origin: center;
+  /* delay lands just after the card has finished arriving */
+  animation: hint-spark 620ms ease-in-out 560ms 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint-attn,
+  .hint-spark {
+    animation: none;
+  }
+}

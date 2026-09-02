@@ -1,0 +1,79 @@
+{# One click, two meanings. The hx-trigger filter stops htmx firing the
+   drawer request while compare mode is on; the @click below then only has to
+   decide what to do, not undo a request that already went out. #}
+<div id="card-{{ listing.id }}" data-listing-id="{{ listing.id }}"
+     {% if listing.is_demo %}data-demo="{{ listing.url.rsplit('/', 1)[-1] }}"{% endif %} class="gallery-card card overflow-hidden flex flex-col cursor-pointer"
+     hx-get="/listings/{{ listing.id }}/drawer" hx-trigger="click[!window.compareModeOn()]"
+     hx-target="#drawer-body" hx-swap="innerHTML"
+     :class="$store.ui.compareMode && $store.ui.compareSel.includes('{{ listing.id }}')
+             ? 'ring-2 ring-accent-500' : ''"
+     @click="$store.ui.compareMode
+             ? ($store.ui.compareSel = $store.ui.compareSel.includes('{{ listing.id }}')
+                 ? $store.ui.compareSel.filter(i => i !== '{{ listing.id }}')
+                 : [...$store.ui.compareSel, '{{ listing.id }}'])
+             : ($store.ui.drawerOpen = true, window.setActiveListing('{{ listing.id }}'))">
+    <div class="aspect-[4/3] bg-zinc-200 dark:bg-zinc-800 relative">
+        {# An import replies as soon as the listing row commits; photos keep
+           downloading on a background thread (finish_listing_async), so for a
+           second or two a fresh card has none - and "brak zdjęć" reads as "this
+           listing will never have any". This container says otherwise and
+           refreshes itself once they land.
+
+           It is the container, not its contents, that holds the identity:
+           hx-swap="innerHTML" refills this node instead of replacing it, so a
+           refresh can't pull the card out from under a click. Stopping is
+           htmx's own convention - the route answers 286 once photos exist or
+           the grace window closes (is_awaiting_photos), which cancels the
+           poll; a listing that genuinely has no photos never starts one. #}
+        <div id="card-photo-{{ listing.id }}" class="absolute inset-0"
+             {% if is_awaiting_photos(listing) %}
+             hx-get="/listings/{{ listing.id }}/photo" hx-trigger="every 3s"
+             hx-target="this" hx-swap="innerHTML"
+             {% endif %}>
+            {% include "partials/_gallery_card_photo.html" %}
+        </div>
+        <span class="status-pill absolute top-2 left-2 {{ STATUS_PILL_CLASSES[listing.status.value] }}">
+            {{ listing.status.value }}
+        </span>
+        {% if listing.rank %}
+        {# Touch has no drag-and-drop equivalent (rank-drag.js uses native
+           HTML5 DnD, which never fires on a touchscreen) - these mirror the
+           drawer's own ▲/▼ buttons (detail_drawer.html) so reordering is
+           reachable without dragging. @click.stop keeps a tap here from also
+           triggering the card's own click-to-open-drawer handler; hx-swap
+           "none" + hx-on::after-request discards the response and resubmits
+           the filter form instead, the same trick rank-drag.js already uses
+           after its own fetch(), since there's no "gallery card" render
+           template registered server-side (only "drawer"/"compare_row"). #}
+        <div class="absolute top-2 right-2 flex items-center gap-1" @click.stop>
+            <span class="rounded-full bg-accent-600 text-white text-xs font-semibold px-2 py-0.5">#{{ listing.rank }}</span>
+            <button type="button" title="Przesuń wyżej" aria-label="Przesuń wyżej"
+                    class="w-6 h-6 flex items-center justify-center rounded-full bg-zinc-900/70 text-white text-xs leading-none hover:bg-zinc-900/90 disabled:opacity-40"
+                    {% if listing.rank == 1 %}disabled{% endif %}
+                    hx-post="/listings/{{ listing.id }}/rank" hx-vals='{"value": "{{ listing.rank - 1 }}"}'
+                    hx-swap="none" hx-on::after-request="htmx.trigger('#filter-form', 'submit')">▲</button>
+            <button type="button" title="Przesuń niżej" aria-label="Przesuń niżej"
+                    class="w-6 h-6 flex items-center justify-center rounded-full bg-zinc-900/70 text-white text-xs leading-none hover:bg-zinc-900/90"
+                    hx-post="/listings/{{ listing.id }}/rank" hx-vals='{"value": "{{ listing.rank + 1 }}"}'
+                    hx-swap="none" hx-on::after-request="htmx.trigger('#filter-form', 'submit')">▼</button>
+        </div>
+        {% endif %}
+        <span x-show="$store.ui.compareMode && $store.ui.compareSel.includes('{{ listing.id }}')"
+              x-cloak
+              class="absolute inset-0 flex items-center justify-center bg-accent-600/25">
+            <span class="rounded-full bg-accent-600 text-white w-9 h-9 flex items-center justify-center text-lg font-bold">✓</span>
+        </span>
+        {% if listing.is_demo %}
+        <span class="absolute bottom-2 left-2 rounded-full bg-zinc-900/80 text-white text-xs font-semibold px-2 py-0.5">Przykład</span>
+        {% endif %}
+    </div>
+    <div class="p-3 flex-1 flex flex-col gap-1">
+        <div class="font-medium truncate">{{ listing.title or "Bez nazwy" }}</div>
+        <div data-tour="card-cost" class="text-lg font-semibold {{ cost_ctx.suma_miesieczna_color(listing) }}">{{ display.display_value(listing, fields.FIELDS_BY_KEY["suma_miesieczna"]) }}</div>
+        <div class="text-xs text-zinc-500">{{ display.display_value(listing, fields.FIELDS_BY_KEY["cena_za_m2"]) }}</div>
+        <div class="text-xs text-zinc-500">
+            {{ display.display_value(listing, fields.FIELDS_BY_KEY["rooms"]) }} ·
+            {{ display.display_value(listing, fields.FIELDS_BY_KEY["area_m2"]) }}
+        </div>
+    </div>
+</div>

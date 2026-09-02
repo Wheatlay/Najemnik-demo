@@ -1,0 +1,15 @@
+{% set active_path = "/" ~ (view or "") %}
+<nav id="top-nav" hx-swap-oob="true" class="flex flex-wrap gap-1">
+    {% for path, label in NAV_ITEMS %}
+    <a href="{{ nav_url(request, path) }}"
+       hx-get="{{ nav_url(request, path) }}"
+       hx-target="#main-content"
+       hx-push-url="true"
+       hx-swap="innerHTML transition:true"
+       hx-indicator="#nav-progress"
+       hx-sync="#top-nav:queue last"
+       class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {% if path == active_path %}bg-accent-600 text-white{% else %}text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800{% endif %}">
+        {{ label }}
+    </a>
+    {% endfor %}
+</nav>

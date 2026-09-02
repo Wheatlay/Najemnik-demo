@@ -1,0 +1,25 @@
+{% if has_any_listings is defined and not has_any_listings %}
+<div class="card p-8 text-center mb-4">
+    <div class="text-3xl mb-2">🏠</div>
+    <h2 class="font-semibold text-lg mb-1">Zacznij szukać</h2>
+    <p class="text-sm text-zinc-500 mb-4">
+        Wklej link do ogłoszenia z Otodom, OLX lub innego portalu -
+        Najemnik pobierze dane i policzy prawdziwy koszt miesięczny.
+    </p>
+    <div class="flex items-center justify-center gap-2">
+        <button type="button" class="btn"
+                @click="ingestOpen = true; $nextTick(() => $refs.ingestUrls.focus())">
+            Wklej pierwszy link
+        </button>
+        {# Loads the examples *and* starts the tour: the tour has nothing to
+           point at without them, and a user who wants to "see how it works"
+           wants both. Tour position lives in sessionStorage, so setting it
+           before navigating is enough - tour.js picks it up on load. #}
+        <button type="button" class="btn-secondary"
+                hx-post="/demo/wczytaj" hx-target="body" hx-swap="none"
+                hx-on::after-request="window.tourCollapseGroups && tourCollapseGroups(); sessionStorage.setItem('tour:state', JSON.stringify({i: 0})); window.location = '/galeria'">
+            Pokaż mi, jak to działa
+        </button>
+    </div>
+</div>
+{% endif %}

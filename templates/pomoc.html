@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .help-page { max-width: 48rem; margin: 0 auto; display: grid; gap: 1.25rem; }
+    .help-card { padding: 1.25rem; }
+    .help-grid { display: grid; gap: 1rem; }
+    .help-card h2 { margin: 0 0 .5rem; }
+    .help-card p { margin: 0; line-height: 1.55; }
+    .help-card ul { margin: 0; padding-left: 1.25rem; line-height: 1.7; }
+    .help-card .btn { display: inline-block; margin-top: .9rem; }
+    @media (min-width: 48rem) { .help-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+<div class="help-page">
+    <div class="card help-card">
+        <h1 class="text-2xl font-semibold mb-2">O tym demo</h1>
+        <p class="text-zinc-600 dark:text-zinc-300">
+            To uproszczony wycinek aplikacji Najemnik przygotowany jako portfolio kodu.
+            Pokazuje przepływ porównywania mieszkań bez kont, importu danych i integracji produkcyjnych.
+        </p>
+    </div>
+
+    <div class="help-grid">
+        <div class="card help-card">
+            <h2 class="font-semibold mb-2">Co działa</h2>
+            <ul class="list-disc pl-5 space-y-1 text-sm">
+                <li>filtrowanie i ranking ofert;</li>
+                <li>porównanie pełnych kosztów;</li>
+                <li>mapa i punkty dojazdu;</li>
+                <li>notatki oraz ręczna edycja danych;</li>
+                <li>samouczek i reset sesji.</li>
+            </ul>
+        </div>
+        <div class="card help-card">
+            <h2 class="font-semibold mb-2">Co jest syntetyczne</h2>
+            <p class="text-sm">
+                Wszystkie ogłoszenia, kontakty, adresy i zdjęcia powstały wyłącznie na potrzeby portfolio.
+                Widoczne wyniki analizy modelu są zapisanymi przykładami, nie wywołaniami na żywo.
+            </p>
+        </div>
+    </div>
+
+    <div class="card help-card">
+        <h2 class="font-semibold mb-2">Kod źródłowy</h2>
+        <p class="text-sm mb-3">
+            Repozytorium zachowuje rzeczywisty kod domenowy odpowiedzialny za koszty, porównania,
+            ranking i obsługę dowodów z lokalnego modelu. Warstwy kont, administracji, poczty,
+            importu i dystrybucji zostały świadomie pominięte w publicznym wycinku.
+        </p>
+        <a href="/galeria?samouczek=1" class="btn">Uruchom samouczek</a>
+    </div>
+</div>
+{% endblock %}

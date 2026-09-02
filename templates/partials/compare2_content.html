@@ -1,0 +1,31 @@
+{# Focused comparison for the 2-4 listings selected in the gallery. #}
+<div class="max-w-5xl mx-auto">
+    {% if listings|length >= 2 %}
+    <div class="flex items-center justify-end mb-3 gap-2 flex-wrap">
+        <div class="flex items-center gap-2">
+            <a href="/galeria" class="btn-secondary text-sm">← Zmień wybór</a>
+        </div>
+    </div>
+
+    <input type="hidden" id="compare_ids_input" name="compare_ids" value="{{ compare_ids }}">
+    <div id="compare-focus">
+        {% with standalone = True %}{% include "partials/compare_focus.html" %}{% endwith %}
+    </div>
+
+    {% else %}
+    <div class="card p-8 text-center">
+        <div class="text-3xl mb-2">⚖</div>
+        <h2 class="font-semibold text-lg mb-1">Wybierz mieszkania do porównania</h2>
+        <p class="text-sm text-zinc-500 mb-4">
+            {% if has_any_listings %}
+            Przejdź do Galerii, włącz „Tryb porównania” i kliknij 2-4 mieszkania.
+            {% else %}
+            Najpierw dodaj ogłoszenia - potem będzie co porównywać.
+            {% endif %}
+        </p>
+        <div class="flex items-center justify-center gap-2">
+            <a href="/galeria" class="btn">Przejdź do Galerii</a>
+        </div>
+    </div>
+    {% endif %}
+</div>

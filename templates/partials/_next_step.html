@@ -1,0 +1,55 @@
+{% import "_field_macros.html" as m with context %}
+{# "Co dalej?" - the fields that matter at the current stage of the search,
+   surfaced at the top of the drawer.
+
+   Deliberately *not* a reordering of the existing groups. Moving fields
+   around as status changes would make the panel jump under the user's
+   cursor and give each field two possible homes. Instead the groups stay
+   exactly where they are and this block renders the two or three fields the
+   next action needs, using the same macros and the same PATCH route - so
+   editing here and editing in the group are the same edit, not two copies
+   of the truth.
+
+   The stages mirror how a search actually runs: you read the ad, you call
+   about it, you go and see it, then you judge it. Nowe shows nothing at all
+   - nothing has been decided yet, and an empty prompt would just be noise. #}
+
+{% set st = listing.status.value %}
+
+{% if st == "Przejrzane" %}
+<div class="next-step">
+    <div class="next-step-label">Co dalej: zadzwoń</div>
+    {% if listing.phone %}
+    <div class="flex items-center gap-2 mb-2">
+        <span class="btn-secondary text-sm cursor-text select-all" title="Nr telefonu">
+            📞 {{ display.display_value(listing, fields.FIELDS_BY_KEY["phone"]) }}
+        </span>
+    </div>
+    {% else %}
+    <p class="text-sm text-zinc-500 mb-2">Ogłoszenie nie podało numeru telefonu.</p>
+    {% endif %}
+</div>
+
+{% elif st == "Umówione na oględziny" %}
+<div class="next-step">
+    <div class="next-step-label">Co dalej: idź obejrzeć</div>
+    {# "Zapisz termin", not "Umów się": the field is a notepad, not a booking
+       widget. Nothing here contacts the landlord, and a label that sounds
+       like it does would be a promise the app doesn't keep. #}
+    <div class="field-label mb-0.5">📅 Zapisz umówiony termin</div>
+    <input type="datetime-local" class="field-input" name="value"
+           value="{{ display.raw_value(listing, fields.FIELDS_BY_KEY['termin_ogledzin']) }}"
+           hx-patch="/listings/{{ listing.id }}/field" hx-trigger="change"
+           hx-vals='{"key": "termin_ogledzin", "render": "drawer"}'
+           hx-target="#drawer-body" hx-swap="innerHTML">
+</div>
+
+{% elif st == "Obejrzane" %}
+<div class="next-step">
+    <div class="next-step-label">Co dalej: oceń</div>
+    <div class="grid grid-cols-2 gap-2">
+        {{ m.stars(listing, "ocena_wygladu", "Wygląd", "#drawer-body", "drawer") }}
+        {{ m.stars(listing, "ocena_glosnosci_otoczenia", "Głośność otoczenia", "#drawer-body", "drawer") }}
+    </div>
+</div>
+{% endif %}

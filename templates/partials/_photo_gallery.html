@@ -1,0 +1,48 @@
+<div id="photos-{{ listing.id }}" x-data='{ lightbox: false, idx: 0, photos: {{ listing.photos|tojson }} }'>
+    <div class="aspect-[4/3] bg-zinc-200 dark:bg-zinc-800 rounded-lg overflow-hidden relative mb-2">
+        {% if listing.photos %}
+        <img :src="'/' + photos[idx]" class="w-full h-full object-cover cursor-zoom-in" @click="lightbox = true">
+        {% if listing.photos|length > 1 %}
+        <button type="button" class="absolute left-0 top-0 h-full w-10 flex items-center justify-center text-white text-2xl bg-gradient-to-r from-black/30 to-transparent hover:from-black/50 transition-colors"
+                @click.stop="idx = (idx - 1 + photos.length) % photos.length">‹</button>
+        <button type="button" class="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-white text-2xl bg-gradient-to-l from-black/30 to-transparent hover:from-black/50 transition-colors"
+                @click.stop="idx = (idx + 1) % photos.length">›</button>
+        <span class="absolute bottom-2 right-2 text-xs bg-black/60 text-white rounded px-1.5 py-0.5" x-text="(idx+1) + '/' + photos.length"></span>
+        {% endif %}
+        {% elif is_awaiting_photos(listing) %}
+        <div class="w-full h-full flex items-center justify-center text-zinc-400 text-sm">Pobieranie zdjęć…</div>
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-zinc-400 text-sm">brak zdjęć</div>
+        {% endif %}
+    </div>
+
+    {% if listing.photos|length > 1 %}
+    <div class="flex gap-1 overflow-x-auto mb-2">
+        {% for photo in listing.photos %}
+        <img src="/{{ photo }}" class="w-14 h-14 object-cover rounded cursor-pointer shrink-0"
+             :class="idx === {{ loop.index0 }} ? 'ring-2 ring-accent-500' : ''"
+             @click="idx = {{ loop.index0 }}">
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Guarded on photos, same as the inline image above: without this the
+       lightbox still renders (hidden) for a listing with no photos, and
+       `photos[idx]` on an empty array makes :src resolve to "/undefined",
+       firing a 404 on every single drawer open. #}
+    {% if listing.photos %}
+    <template x-teleport="body">
+        <div x-show="lightbox" x-cloak class="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
+             @keydown.escape.window="lightbox = false"
+             @keydown.arrow-left.window="idx = (idx - 1 + photos.length) % photos.length"
+             @keydown.arrow-right.window="idx = (idx + 1) % photos.length"
+             @click="lightbox = false">
+            <button type="button" class="absolute top-4 right-4 text-white text-2xl z-10" @click="lightbox = false">✕</button>
+            <button type="button" class="absolute left-0 top-0 h-full w-20 sm:w-32 flex items-center justify-center text-white text-5xl hover:bg-white/10 transition-colors" @click.stop="idx = (idx - 1 + photos.length) % photos.length">‹</button>
+            <img :src="'/' + photos[idx]" class="max-h-[90vh] max-w-[90vw] object-contain" @click.stop>
+            <button type="button" class="absolute right-0 top-0 h-full w-20 sm:w-32 flex items-center justify-center text-white text-5xl hover:bg-white/10 transition-colors" @click.stop="idx = (idx + 1) % photos.length">›</button>
+            <span class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm" x-text="(idx+1) + ' / ' + photos.length"></span>
+        </div>
+    </template>
+    {% endif %}
+</div>

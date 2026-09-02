@@ -1,0 +1,79 @@
+{% if listings %}
+<div class="card p-3" x-data="{ openGroups: {} }">
+    <div class="flex items-center justify-between mb-2">
+        <div class="font-medium text-sm">Porównanie ({{ listings|length }})</div>
+        <div class="flex items-center gap-2">
+            {# No close button when this *is* the page (/porownaj2) - emptying
+               #compare-focus there would leave a blank screen. #}
+            {% if not standalone %}
+            <button type="button" class="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200" title="Zamknij" aria-label="Zamknij"
+                    onclick="document.getElementById('compare-focus').innerHTML = ''">✕</button>
+            {% endif %}
+        </div>
+    </div>
+    {# Fixed 1fr columns squeeze illegibly with 3-4 listings selected on a
+       phone and had no scroll escape - minmax gives each column a floor
+       width before the wrapper below starts scrolling instead, the same
+       overflow-x-auto pattern the detail table further down already uses. #}
+    <div class="overflow-x-auto mb-3">
+    <div class="grid gap-2" style="grid-template-columns: 120px repeat({{ listings|length }}, minmax(140px, 1fr));">
+        <div></div>
+        {% for l in listings %}
+        <div class="font-medium text-sm truncate" title="{{ l.title }}">{{ l.title or "Bez nazwy" }}</div>
+        {% endfor %}
+        <div class="field-label self-center">Suma miesięczna</div>
+        {% for l in listings %}
+        <div class="field-computed-money {{ cost_ctx.suma_miesieczna_color(l) }} {{ 'ring-2 ring-green-500' if l.id in best.get('suma_miesieczna', []) else '' }}">
+            {{ display.display_value(l, fields.FIELDS_BY_KEY["suma_miesieczna"]) }}
+        </div>
+        {% endfor %}
+        <div class="field-label self-center">Suma wejścia</div>
+        {% for l in listings %}
+        <div class="field-computed-money {{ cost_ctx.suma_wejscia_color(l) }} {{ 'ring-2 ring-green-500' if l.id in best.get('suma_wejscia', []) else '' }}">
+            {{ display.display_value(l, fields.FIELDS_BY_KEY["suma_wejscia"]) }}
+        </div>
+        {% endfor %}
+    </div>
+    </div>
+
+    {% if listings|selectattr("ai_comment")|list %}
+    <div class="overflow-x-auto mb-3">
+    <div class="grid gap-2" style="grid-template-columns: 120px repeat({{ listings|length }}, minmax(140px, 1fr));">
+        <div class="field-label self-start">🤖 Analiza AI</div>
+        {% for l in listings %}
+        <div class="field-computed whitespace-pre-wrap font-normal text-sm leading-snug min-h-[4rem] py-2">{{ l.ai_comment or "—" }}</div>
+        {% endfor %}
+    </div>
+    </div>
+    {% endif %}
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+            <tbody>
+                {% for group, group_fields in fields.compare_columns() %}
+                {% set relevant = group_fields|rejectattr("key", "in", ["suma_miesieczna", "suma_wejscia", "ai_comment"])|list %}
+                {% if relevant %}
+                <tr class="cursor-pointer select-none" @click="openGroups['{{ group }}'] = openGroups['{{ group }}'] === false ? true : false">
+                    <td class="compare-group-header {{ COMPARE_GROUP_COLORS.get(group, COMPARE_GROUP_COLOR_DEFAULT) }}" colspan="{{ listings|length + 1 }}">
+                        {{ group }} <span x-text="openGroups['{{ group }}'] === false ? '▸' : '▾'"></span>
+                    </td>
+                </tr>
+                {% for f in relevant %}
+                <tr class="border-b border-zinc-100 dark:border-zinc-800" x-show="openGroups['{{ group }}'] !== false">
+                    <td class="p-1 field-label align-top w-[120px]">{{ f.label }}</td>
+                    {% for l in listings %}
+                    {% set raw = display.raw_value(l, f) %}
+                    {% set missing = display.is_field_missing(l, f) %}
+                    <td class="p-1 align-top {% if l.id in best.get(f.key, []) %}bg-green-50 dark:bg-green-900/30 font-semibold{% elif missing %}italic text-amber-600 dark:text-amber-400{% endif %}">
+                        {{ display.display_value(l, f) }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}

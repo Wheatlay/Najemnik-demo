@@ -1,0 +1,38 @@
+{% include "partials/_onboarding_empty_state.html" %}
+<div id="map" hx-preserve class="relative w-full h-full rounded-lg overflow-hidden" style="min-height: 70vh;">
+    <div class="map-controls-panel">
+        <div class="map-seg-group" data-group="mode" role="group" aria-label="Widok">
+            <button type="button" class="map-seg-btn" data-mode="price">Koszt miesięczny</button>
+            <button type="button" class="map-seg-btn" data-mode="wejscie">Koszt wejścia</button>
+            <button type="button" class="map-seg-btn" data-mode="rok">Koszt roczny</button>
+            <button type="button" class="map-seg-btn" data-mode="status">Status</button>
+        </div>
+        <div class="map-seg-group" data-group="basemap" role="group" aria-label="Mapa">
+            <button type="button" class="map-seg-btn" data-style="liberty" title="Budynki 3D">3D</button>
+            <button type="button" class="map-seg-btn" data-style="bright" title="Płaska mapa, bez budynków 3D">Płaska</button>
+            <button type="button" class="map-seg-btn" data-style="positron" title="Minimalna - bez budynków i większości etykiet">Minimalna</button>
+        </div>
+        <div class="map-seg-group" data-group="move-pin" role="group" aria-label="Przesuwanie pinezek">
+            <button type="button" class="map-seg-btn" id="map-move-pin-toggle" aria-pressed="false"
+                    title="Włącz, aby ręcznie przeciągać pinezki - potwierdza dokładną lokalizację ogłoszenia">
+                📍 Przesuń pinezkę
+            </button>
+        </div>
+        <div id="map-status-legend" class="map-status-legend hidden"></div>
+    </div>
+</div>
+<script>
+    (function () {
+        const points = {{ map_points|tojson }};
+        const colors = {{ STATUS_MARKER_VARS|tojson }};
+        // tojson sorts dict keys alphabetically (Jinja's default json.dumps
+        // policy), which would silently reshuffle the legend - STATUS_VALUES
+        // is a list, so tojson preserves its declared order instead.
+        const statusOrder = {{ STATUS_VALUES|tojson }};
+        const focusId = {{ focus_id|tojson }};
+        const commutePoints = {{ commute_points|tojson }};
+        if (window.maplibregl) {
+            initMap(points, colors, focusId, statusOrder, commutePoints);
+        }
+    })();
+</script>

@@ -1,0 +1,10 @@
+{# Piggy-backed on every htmx response for a top-level view (galeria/mapa/
+   porownaj/panel/ustawienia) - none of these three regions live inside
+   #main-content, so a plain innerHTML swap of the main content never
+   updates them, and they all depend on `view`: nav active-highlight,
+   sidebar visibility/content (Mapa hides the sort-by field; Panel/Ustawienia
+   hide the sidebar entirely), and the search form's target path. #}
+{% include "partials/_nav_bar.html" %}
+{% include "partials/_sidebar_region.html" %}
+{% include "partials/_search_form.html" %}
+<title>{{ APP_NAME }} – {{ NAV_LABELS.get(view, view) }}</title>

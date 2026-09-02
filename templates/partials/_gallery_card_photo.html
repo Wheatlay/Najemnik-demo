@@ -1,0 +1,14 @@
+{# Contents of a gallery card's image layer. Deliberately only the contents:
+   the polling container lives in _gallery_card.html and keeps its DOM
+   identity, so a refresh refills this node rather than replacing the one the
+   user may be clicking. #}
+{% if listing.photos %}
+<img src="/{{ listing.photos[0] }}" class="w-full h-full object-cover" alt="">
+{% elif is_awaiting_photos(listing) %}
+{# Static rather than animate-pulse: an infinite CSS animation in the gallery
+   is something Playwright's actionability checks wait on, and it made the
+   smoke test's card clicks measurably less stable. #}
+<div class="w-full h-full flex items-center justify-center text-zinc-400 text-sm">Pobieranie zdjęć…</div>
+{% else %}
+<div class="w-full h-full flex items-center justify-center text-zinc-400 text-sm">brak zdjęć</div>
+{% endif %}

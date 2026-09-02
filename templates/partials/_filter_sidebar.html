@@ -1,0 +1,167 @@
+{% set qp = request.query_params %}
+{% set cena_active = qp.get('m2_price_min') or qp.get('m2_price_max') or qp.get('entry_price_min') or qp.get('entry_price_max') %}
+{% set udogodnienia_active = qp.get('tags') or qp.get('parking') or qp.get('piwnica') %}
+{% set oceny_active = qp.get('ocena_wygladu_min') or qp.get('ocena_glosnosci_otoczenia_min') %}
+{% set inne_active = qp.get('available_by') or qp.get('pets_allowed') or qp.get('ranked_only') %}
+<form id="filter-form"
+      hx-get="{{ request.url.path }}"
+      hx-target="#main-content"
+      hx-swap="innerHTML transition:true"
+      hx-trigger="change, submit"
+      hx-push-url="true"
+      hx-indicator="#nav-progress"
+      hx-sync="this:queue last"
+      class="space-y-4 text-sm">
+
+    {# --- Universal filters: always visible, the ones adjusted most often --- #}
+
+    {% if view != "mapa" %}
+    <div>
+        <div class="field-label mb-1">Sortuj wg</div>
+        <select name="sort" class="field-input">
+            <option value="-created_at" {% if qp.get('sort', '-created_at') == '-created_at' %}selected{% endif %}>Data dodania (najnowsze)</option>
+            <option value="created_at" {% if qp.get('sort') == 'created_at' %}selected{% endif %}>Data dodania (najstarsze)</option>
+            {% for f in fields.sortable_fields() %}
+            <option value="{{ f.key }}" {% if qp.get('sort') == f.key %}selected{% endif %}>{{ f.label }} ↑</option>
+            <option value="-{{ f.key }}" {% if qp.get('sort') == '-' + f.key %}selected{% endif %}>{{ f.label }} ↓</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    <div>
+        <div class="field-label mb-1">Status</div>
+        {% for s in display.STATUS_VALUES %}
+        <label class="flex items-center gap-2 py-0.5">
+            <input type="checkbox" name="status" value="{{ s }}" {% if s in qp.getlist('status') %}checked{% endif %}>
+            {{ s }}
+        </label>
+        {% endfor %}
+    </div>
+
+    <div>
+        <div class="field-label mb-1">Cena miesięczna (zł)</div>
+        <div class="flex gap-2">
+            <input type="number" name="price_min" value="{{ qp.get('price_min', '') }}" placeholder="od" class="field-input">
+            <input type="number" name="price_max" value="{{ qp.get('price_max', '') }}" placeholder="do" class="field-input">
+        </div>
+    </div>
+
+    <div class="flex gap-2">
+        <div class="flex-1">
+            <div class="field-label mb-1">Min. pokoi</div>
+            <input type="number" name="rooms_min" value="{{ qp.get('rooms_min', '') }}" class="field-input">
+        </div>
+        <div class="flex-1">
+            <div class="field-label mb-1">Min. metraż (m²)</div>
+            <input type="number" name="area_min" value="{{ qp.get('area_min', '') }}" class="field-input">
+        </div>
+    </div>
+
+    {# --- Categorized, collapsible: less commonly touched filters --- #}
+
+    <details class="border-t border-zinc-200 dark:border-zinc-800 pt-2" {% if cena_active %}open{% endif %}>
+        <summary class="field-label cursor-pointer select-none">Cena (dodatkowe)</summary>
+        <div class="space-y-4 mt-3">
+            <div>
+                <div class="field-label mb-1">Cena za m²</div>
+                <div class="flex gap-2">
+                    <input type="number" name="m2_price_min" value="{{ qp.get('m2_price_min', '') }}" placeholder="od" class="field-input">
+                    <input type="number" name="m2_price_max" value="{{ qp.get('m2_price_max', '') }}" placeholder="do" class="field-input">
+                </div>
+            </div>
+            <div>
+                <div class="field-label mb-1">Cena wejścia (zł)</div>
+                <div class="flex gap-2">
+                    <input type="number" name="entry_price_min" value="{{ qp.get('entry_price_min', '') }}" placeholder="od" class="field-input">
+                    <input type="number" name="entry_price_max" value="{{ qp.get('entry_price_max', '') }}" placeholder="do" class="field-input">
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <details class="border-t border-zinc-200 dark:border-zinc-800 pt-2" {% if udogodnienia_active %}open{% endif %}>
+        <summary class="field-label cursor-pointer select-none">Udogodnienia</summary>
+        <div class="space-y-4 mt-3">
+            <div>
+                <div class="field-label mb-1">Parking / garaż</div>
+                <select name="parking" class="field-input">
+                    <option value="">dowolnie</option>
+                    <option value="true" {% if qp.get('parking') == 'true' %}selected{% endif %}>tak</option>
+                    <option value="false" {% if qp.get('parking') == 'false' %}selected{% endif %}>nie</option>
+                </select>
+            </div>
+            <div>
+                <div class="field-label mb-1">Piwnica / komórka lokatorska</div>
+                <select name="piwnica" class="field-input">
+                    <option value="">dowolnie</option>
+                    <option value="true" {% if qp.get('piwnica') == 'true' %}selected{% endif %}>tak</option>
+                    <option value="false" {% if qp.get('piwnica') == 'false' %}selected{% endif %}>nie</option>
+                </select>
+            </div>
+            <div x-data="{ selectedTags: '{{ qp.get('tags', '') }}'.split(',').map(t => t.trim()).filter(Boolean) }">
+                <div class="field-label mb-1">Tagi</div>
+                <input type="hidden" name="tags" :value="selectedTags.join(', ')">
+                <div class="space-y-0.5">
+                    {% for t in fields.TAG_VOCABULARY %}
+                    <label class="flex items-center gap-2 py-0.5">
+                        <input type="checkbox" value="{{ t }}"
+                               :checked="selectedTags.includes('{{ t }}')"
+                               @change="$event.target.checked ? selectedTags.push('{{ t }}') : selectedTags = selectedTags.filter(x => x !== '{{ t }}')">
+                        {{ t }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </details>
+
+    <details class="border-t border-zinc-200 dark:border-zinc-800 pt-2" {% if oceny_active %}open{% endif %}>
+        <summary class="field-label cursor-pointer select-none">Oceny</summary>
+        <div class="space-y-4 mt-3">
+            <div>
+                <div class="field-label mb-1">Min. ocena wyglądu</div>
+                <select name="ocena_wygladu_min" class="field-input">
+                    <option value="">dowolna</option>
+                    {% for i in range(1, 6) %}<option value="{{ i }}" {% if qp.get('ocena_wygladu_min')|string == i|string %}selected{% endif %}>{{ i }}+</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <div class="field-label mb-1">Min. ocena głośności otoczenia</div>
+                <select name="ocena_glosnosci_otoczenia_min" class="field-input">
+                    <option value="">dowolna</option>
+                    {% for i in range(1, 6) %}<option value="{{ i }}" {% if qp.get('ocena_glosnosci_otoczenia_min')|string == i|string %}selected{% endif %}>{{ i }}+</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+    </details>
+
+    <details class="border-t border-zinc-200 dark:border-zinc-800 pt-2" {% if inne_active %}open{% endif %}>
+        <summary class="field-label cursor-pointer select-none">Inne</summary>
+        <div class="space-y-4 mt-3">
+            <div>
+                <div class="field-label mb-1">Dostępne do</div>
+                <input type="date" name="available_by" value="{{ qp.get('available_by', '') }}" class="field-input">
+            </div>
+            <div>
+                <div class="field-label mb-1">Zwierzęta dozwolone</div>
+                <select name="pets_allowed" class="field-input">
+                    <option value="">dowolnie</option>
+                    <option value="true" {% if qp.get('pets_allowed') == 'true' %}selected{% endif %}>tak</option>
+                    <option value="false" {% if qp.get('pets_allowed') == 'false' %}selected{% endif %}>nie</option>
+                </select>
+            </div>
+            <label class="flex items-center gap-2">
+                <input type="checkbox" name="ranked_only" value="true" {% if qp.get('ranked_only') == 'true' %}checked{% endif %}>
+                Tylko rankingowane
+            </label>
+        </div>
+    </details>
+
+    <input type="hidden" name="q" value="{{ qp.get('q', '') }}">
+
+    <button type="button" class="btn-secondary w-full"
+            onclick="document.getElementById('filter-form').reset(); htmx.trigger('#filter-form', 'submit')">
+        Wyczyść filtry
+    </button>
+</form>

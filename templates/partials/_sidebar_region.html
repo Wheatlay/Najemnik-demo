@@ -1,0 +1,30 @@
+{# Stable id + display:contents so htmx can out-of-band-replace this whole
+   region on a top-nav swap (the sidebar's own filter-form needs re-pointing
+   at the new view's path, and Mapa hides the sort-by field) without the
+   wrapper introducing an extra flex box around its aside/button children. #}
+<div id="sidebar-region" hx-swap-oob="true" class="contents">
+    {# Allowlist, not a blocklist: the filter sidebar only means anything on
+       the three views that render a filtered set of listings. As a blocklist
+       ("not in panel/ustawienia") every page added later - /admin/* was the
+       first - inherited a filter form it has no use for, silently. #}
+    {% if view in ("galeria", "mapa", "porownaj") %}
+    <!-- Filter sidebar -->
+    <aside data-tour="filters" :class="sidebarOpen ? 'w-64' : 'w-0'"
+           class="shrink-0 overflow-hidden border-r border-zinc-200 dark:border-zinc-800 transition-all duration-200">
+        <div class="w-64 h-full overflow-y-auto p-3">
+            {% include "partials/_filter_sidebar.html" %}
+        </div>
+    </aside>
+    {# Was plain low-contrast text with no background - barely visible against
+       the page and, at its natural glyph size, well under a comfortable
+       click/tap target. Sized and colored to match the other icon buttons in
+       the header (bg-zinc-100/800 pill) so it reads as a button rather than
+       stray punctuation. #}
+    <button class="self-start shrink-0 m-2 w-10 h-10 flex items-center justify-center rounded-md
+                    bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-lg font-bold
+                    hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
+            @click="sidebarOpen = !sidebarOpen" title="Zwiń/rozwiń filtry" aria-label="Zwiń/rozwiń filtry">
+        <span x-text="sidebarOpen ? '‹' : '›'"></span>
+    </button>
+    {% endif %}
+</div>

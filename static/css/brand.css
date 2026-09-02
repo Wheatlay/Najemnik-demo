@@ -1,0 +1,164 @@
+/* ==========================================================================
+   NAJEMNIK — BRAND PALETTE
+   --------------------------------------------------------------------------
+   This is the ONE file to edit to recolor the whole app. Nothing outside it
+   decides a color: Python passes semantic slugs (`status-pill-nowe`,
+   `money-cheap`) and CSS variable *names*, templates pass those through, and
+   JS resolves the variables at runtime (brandColor() in static/js/core.js).
+   If you find a hex anywhere else, it's a bug — bring it here.
+
+   After editing, rebuild the stylesheet:  build-css.bat
+   (install.bat does it too; output.css is generated and not committed.)
+
+   Two rules keep it that way:
+   1. Every color token lives in the @theme block below.
+   2. Anything that needs a *pair* of light/dark colors is a component class
+      in the @layer components block, named after what it means, never after
+      the color it currently happens to be.
+   ========================================================================== */
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* --- Brand accent ------------------------------------------------------
+     Buttons, focus rings, active nav, rank badges, map heatmap, the logo's
+     own gradient (static/img/logo.svg keeps a copy of 600/500 — SVG files
+     can't read these variables). Swap the eleven values to rebrand.
+     Regular @theme (not static) is correct here: every shade is already
+     referenced by a real utility class somewhere (bg-accent-600 etc), which
+     is what keeps Tailwind from tree-shaking it out of the build. */
+  --color-accent-50: #f5f3ff;
+  --color-accent-100: #ede9fe;
+  --color-accent-200: #ddd6fe;
+  --color-accent-300: #c4b5fd;
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+  --color-accent-700: #6d28d9;
+  --color-accent-800: #5b21b6;
+  --color-accent-900: #4c1d95;
+  --color-accent-950: #2e1065;
+
+  /* --- Neutral canvas ---------------------------------------------------
+     Templates use Tailwind's zinc scale directly (bg-zinc-50 /
+     dark:bg-zinc-950 and friends). To move the app onto a different
+     neutral without touching a single template, re-map the scale here —
+     uncomment and paste in e.g. Tailwind's slate or stone values:
+
+     --color-zinc-50:  #f8fafc;
+     --color-zinc-100: #f1f5f9;
+     ... through --color-zinc-950.
+   */
+}
+
+/* `static` forces Tailwind to always emit these, even though nothing here
+   is ever referenced by a generated utility class (bg-status-nowe etc. -
+   no such class exists) - the only consumers are brandColor()'s getComputedStyle
+   lookups and raw var() calls, which Tailwind's usage-based tree-shaking
+   can't see. Without `static`, whichever of these happened to also appear
+   as a literal string somewhere Tailwind's content scanner looks would
+   survive by accident and the rest would silently vanish from output.css -
+   exactly the bug that shipped once already. */
+@theme static {
+  /* --- Status colors -----------------------------------------------------
+     One per core.display.STATUS_VALUES, keyed by the slug in
+     core.display.STATUS_SLUGS. Used as solid fills where a class won't do:
+     map markers and the map legend dots (JS reads the variable by name, which
+     the server hands over as core.display.STATUS_MARKER_VARS). The matching
+     light/dark pill pairs are the .status-pill-* classes further down —
+     change both sides together or the map stops matching the pills. */
+  --color-status-nowe: #71717a;
+  --color-status-przejrzane: #06b6d4;
+  --color-status-umowione: #f59e0b;
+  --color-status-obejrzane: #3b82f6;
+  --color-status-potencjalne: #22c55e;
+  --color-status-odrzucone: #ef4444;
+
+  /* --- Price signal ------------------------------------------------------
+     cheap / typical / expensive relative to the market median (see
+     core.costs._ratio_bucket). Solid values for map markers; the text
+     equivalents are .money-cheap/-typical/-expensive below. */
+  --color-ratio-cheap: #059669;
+  --color-ratio-typical: #d97706;
+  --color-ratio-expensive: #dc2626;
+}
+
+@layer components {
+  /* Status pills (gallery cards, drawer, compare). Kept as explicit
+     light/dark pairs rather than one generated tint of --color-status-*,
+     because the -100/-800 pairs are hand-picked for contrast in both
+     themes and an alpha ramp off the solid value doesn't reproduce them. */
+  .status-pill-nowe {
+    @apply bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-200;
+  }
+  .status-pill-przejrzane {
+    @apply bg-cyan-100 text-cyan-800 dark:bg-cyan-900/60 dark:text-cyan-200;
+  }
+  .status-pill-umowione {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200;
+  }
+  .status-pill-obejrzane {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200;
+  }
+  .status-pill-potencjalne {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-200;
+  }
+  .status-pill-odrzucone {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-200;
+  }
+
+  /* Price signal as text (money cells in the gallery/compare/drawer). */
+  .money-cheap {
+    @apply text-emerald-600 dark:text-emerald-300;
+  }
+  .money-typical {
+    @apply text-amber-600 dark:text-amber-400;
+  }
+  .money-expensive {
+    @apply text-red-600 dark:text-red-400;
+  }
+
+  /* Red/green/amber cue on TriStateMoney smart fields (parking, piwnica,
+     notariusz, prowizja, deposit, oc, heating) — which direction the money
+     goes, not what type of value is stored (see costs.smart_cost_bucket). */
+  .smart-pay {
+    @apply font-semibold text-red-600 dark:text-red-400;
+  }
+  .smart-free {
+    @apply font-semibold text-emerald-600 dark:text-emerald-300;
+  }
+  .smart-missing {
+    @apply italic text-amber-600 dark:text-amber-400;
+  }
+
+  /* Compare-table group headers, keyed by the slug in
+     core.display.COMPARE_GROUP_SLUGS — a distinct hue per drawer category so
+     scanning a wide table doesn't read as one undifferentiated accent band. */
+  .compare-group-lokalizacja {
+    @apply bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200 border-sky-300 dark:border-sky-600;
+  }
+  .compare-group-mieszkanie {
+    @apply bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200 border-violet-300 dark:border-violet-600;
+  }
+  .compare-group-koszt-miesieczny {
+    @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-600;
+  }
+  .compare-group-koszt-wejscia {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-600;
+  }
+  .compare-group-kontakt {
+    @apply bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-600;
+  }
+  .compare-group-status {
+    @apply bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 border-indigo-300 dark:border-indigo-600;
+  }
+  .compare-group-notatki {
+    @apply bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 border-teal-300 dark:border-teal-600;
+  }
+  .compare-group-ai {
+    @apply bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900 dark:text-fuchsia-200 border-fuchsia-300 dark:border-fuchsia-600;
+  }
+  .compare-group-default {
+    @apply bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600;
+  }
+}
