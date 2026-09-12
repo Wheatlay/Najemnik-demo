@@ -121,6 +121,56 @@
            ring-1 ring-zinc-200 dark:ring-zinc-800;
     z-index: 92;
   }
+  .tour-card--welcome {
+    @apply overflow-hidden p-5;
+    background: linear-gradient(145deg, rgb(24 24 27 / 0.98), rgb(15 15 18 / 0.99));
+    border: 1px solid rgb(255 255 255 / 0.1);
+    box-shadow: 0 24px 70px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.07);
+  }
+  .tour-welcome-topline {
+    @apply flex items-center justify-between mb-5;
+  }
+  .tour-welcome-kicker {
+    @apply text-[10px] font-semibold tracking-[0.16em] text-accent-300;
+  }
+  .tour-welcome-orb {
+    @apply absolute -right-12 -top-16 h-40 w-40 rounded-full pointer-events-none;
+    background: radial-gradient(circle at 35% 35%, rgb(196 181 253 / 0.38), rgb(124 58 237 / 0.14) 42%, transparent 70%);
+  }
+  .tour-card--welcome .tour-card-title {
+    @apply relative text-xl leading-tight text-white mb-2;
+  }
+  .tour-card--welcome .tour-card-text {
+    @apply relative leading-relaxed text-zinc-300;
+  }
+  .tour-welcome-highlights {
+    @apply relative flex flex-wrap gap-1.5 mt-4;
+  }
+  .tour-welcome-highlight {
+    @apply rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-200;
+  }
+  .tour-card-actions.tour-welcome-actions {
+    @apply relative grid grid-cols-1 gap-2 mt-5;
+  }
+  .tour-welcome-choice {
+    @apply flex w-full flex-col rounded-lg border border-white/10 bg-white/[0.035] px-3.5 py-3 text-left text-zinc-100 transition-colors hover:bg-white/[0.08];
+  }
+  .tour-welcome-choice--primary {
+    @apply border-accent-400/60 bg-accent-600 text-white hover:bg-accent-500;
+    box-shadow: 0 8px 24px rgb(124 58 237 / 0.28);
+  }
+  .tour-welcome-choice-label {
+    @apply text-sm font-semibold;
+  }
+  .tour-welcome-choice-description {
+    @apply mt-0.5 text-xs text-zinc-400;
+  }
+  .tour-welcome-choice--primary .tour-welcome-choice-description {
+    @apply text-white/75;
+  }
+  .tour-welcome-skip {
+    @apply relative mt-3 w-full text-center text-xs font-medium text-zinc-400 hover:text-white;
+  }
   .tour-card-head {
     @apply flex items-center justify-between mb-1;
   }

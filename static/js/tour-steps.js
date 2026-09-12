@@ -3,7 +3,16 @@ const DEMO = '.gallery-card[data-demo="listing-2"]';
 const D = "#drawer-panel ";
 
 const LONG_TOUR_STEPS = [
-  {title:"Witaj w interaktywnym demo",text:"Wybierz krótki przegląd albo pełny samouczek.",choices:[{mode:"short",label:"Szybki przegląd"},{mode:"long",label:"Pełny samouczek"}]},
+  {
+    welcome:true,
+    title:"Od ogłoszenia do dobrej decyzji",
+    text:"Zobacz, jak Najemnik porządkuje koszty, wydobywa ważne dane z opisu i pozwala zestawić oferty obok siebie.",
+    highlights:["Pełny koszt najmu", "Dane ukryte w opisie", "Porównanie ofert"],
+    choices:[
+      {mode:"short",label:"Zobacz kluczowe funkcje",description:"Krótka prezentacja · ok. 90 sekund",primary:true},
+      {mode:"long",label:"Pełny samouczek",description:"Cały przebieg pracy z ofertą"}
+    ]
+  },
   {path:"/galeria",selector:'[data-tour="demo-banner"]',title:"Przykładowe dane",text:"W tym demo pracujesz na trzech przygotowanych ogłoszeniach. Możesz je dowolnie zmieniać lub zresetować sesję."},
   {path:"/galeria",selector:DEMO+' [data-tour="card-cost"]',title:"Ukryte koszta",text:"Ta oferta wyglądała w ogłoszeniu na najtańszą, ale po doliczeniu mediów i opłat za parking przez Najemnika wychodzi na najdroższą."},
   {path:"/galeria",selector:DEMO,advance:"click",clickHint:"Otwórz tę ofertę",title:"Wejdźmy w szczegóły",text:"Tu widać, co składa się na końcową kwotę i czego brakuje w opisie."},

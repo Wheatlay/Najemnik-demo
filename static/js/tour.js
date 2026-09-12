@@ -190,6 +190,8 @@ function mountTour() {
     const panels = ["top", "right", "bottom", "left"].map(() => mk("tour-panel"));
     const ring = mk("tour-ring");
     const card = mk("tour-card");
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-modal", "true");
     _tourEls = { panels, ring, card };
 
     const onClick = (e) => {
@@ -332,7 +334,8 @@ function placeCardCentred() {
     const card = _tourEls.card;
     card.style.display = "block";
     const vw = window.innerWidth, vh = window.innerHeight;
-    const cw = Math.min(420, vw - 32);
+    const maxWidth = card.classList.contains("tour-card--welcome") ? 500 : 420;
+    const cw = Math.min(maxWidth, vw - 32);
     card.style.width = cw + "px";
     const ch = card.offsetHeight || 180;
     card.style.left = Math.max(12, vw / 2 - cw / 2) + "px";
@@ -348,11 +351,34 @@ function renderCard(step, targetFound) {
     const total = _tourSteps.length;
 
     const waiting = (step.advance === "click" && targetFound) || !gateOpen(step);
+    card.classList.toggle("tour-card--welcome", !!step.welcome);
     const actions = step.choices
-        ? step.choices.map((choice) => `<button type="button" class="btn" data-tour-action="tour-mode" data-tour-mode="${choice.mode}">${choice.label}</button>`).join("")
+        ? step.choices.map((choice) => step.welcome
+            ? `<button type="button" class="tour-welcome-choice${choice.primary ? " tour-welcome-choice--primary" : ""}" data-tour-action="tour-mode" data-tour-mode="${choice.mode}">
+                <span class="tour-welcome-choice-label">${choice.label}</span>
+                <span class="tour-welcome-choice-description">${choice.description || ""}</span>
+              </button>`
+            : `<button type="button" class="btn" data-tour-action="tour-mode" data-tour-mode="${choice.mode}">${choice.label}</button>`).join("")
         : waiting
         ? `<span class="tour-card-hint">${step.clickHint || "Kliknij podświetlony element"}</span>`
         : `<button type="button" class="btn" data-tour-action="next">${step.nextLabel || "Dalej"}</button>`;
+
+    if (step.welcome) {
+        const highlights = (step.highlights || []).map((item) =>
+            `<span class="tour-welcome-highlight">${item}</span>`).join("");
+        card.innerHTML = `
+            <div class="tour-welcome-topline">
+                <span class="tour-welcome-kicker">NAJEMNIK · PORTFOLIO DEMO</span>
+                <button type="button" class="tour-card-close" data-tour-action="end" title="Pomiń prezentację" aria-label="Pomiń prezentację">✕</button>
+            </div>
+            <div class="tour-welcome-orb" aria-hidden="true"></div>
+            <div class="tour-card-title">${step.title}</div>
+            <p class="tour-card-text">${step.text}</p>
+            <div class="tour-welcome-highlights">${highlights}</div>
+            <div class="tour-card-actions tour-welcome-actions">${actions}</div>
+            <button type="button" class="tour-welcome-skip" data-tour-action="end">Przeglądaj samodzielnie</button>`;
+        return;
+    }
 
     card.innerHTML = `
         <div class="tour-card-head">
