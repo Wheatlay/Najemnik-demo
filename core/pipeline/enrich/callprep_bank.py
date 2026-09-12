@@ -5,8 +5,8 @@ from core.domain.money_field import is_missing as money_is_missing
 
 
 _ALWAYS_ON = [
-    "Na jak długo właściciel chce wynająć mieszkanie i czy przewiduje przedłużenie umowy?",
-    "Co dokładnie zostaje w mieszkaniu, a co właściciel planuje zabrać?",
+    "Jaki jest okres wypowiedzenia umowy i czy właściciel przewiduje jej przedłużenie?",
+    "Czy przy przekazaniu będzie sporządzony protokół zdawczo-odbiorczy i co dokładnie zostaje w mieszkaniu?",
 ]
 
 VIEWING_CHECKLIST = [
@@ -24,7 +24,7 @@ def build_callprep(listing) -> dict:
     missing: list[str] = []
 
     if is_missing_info(listing.heating):
-        missing.append("Jakie jest rodzaj ogrzewania i czy jego koszt jest już w czynszu, czy rozliczany osobno?")
+        missing.append("Jakie ogrzewanie jest w mieszkaniu i czy jego koszt jest już w czynszu, czy rozliczany osobno?")
     if money_is_missing(listing.parking):
         missing.append("Czy miejsce parkingowe jest przypisane do mieszkania? Gdzie jest i ile kosztuje?")
     if money_is_missing(listing.piwnica):
