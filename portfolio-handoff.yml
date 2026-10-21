@@ -26,7 +26,8 @@ architecture_summary: >-
   recorded evidence. Selected local-model enrichment code is retained for review,
   but it is not wired into the hosted showcase.
 guided_recruiter_flow:
-  - Follow the gallery tour.
+  - Open the landing page and click "Zobacz demo".
+  - Follow the short guided tour (about 90 seconds).
   - Filter and open synthetic listings.
   - Compare advertised, monthly, annual, and move-in costs.
   - Inspect map, rankings, notes, and recorded evidence.

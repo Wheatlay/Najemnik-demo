@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pl" x-data="{ dark: localStorage.getItem('dark') !== 'false' }"
+      x-init="$watch('dark', v => { localStorage.setItem('dark', v); document.documentElement.classList.toggle('dark', v) }); document.documentElement.classList.toggle('dark', dark)"
+      :class="{ 'dark': dark }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ APP_NAME }} – od ogłoszenia do dobrej decyzji</title>
+    <meta name="description" content="Najemnik liczy pełny koszt najmu i zestawia oferty obok siebie. Demo portfolio na syntetycznych danych.">
+    <link rel="icon" type="image/png" href="{{ LOGO_DARK }}" media="(prefers-color-scheme: dark)">
+    <link rel="icon" type="image/png" href="{{ LOGO_LIGHT }}">
+    <meta name="theme-color" content="#7c3aed">
+    <link rel="stylesheet" href="/static/css/output.css?v={{ asset_version("css/output.css") }}">
+    <style>
+      :root { --lp-bg: #fafafa; }
+      html.dark { --lp-bg: #09090b; }
+      body { overflow-x: hidden; }
+      .lp-header { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; padding: .75rem 1rem; }
+      .lp-header .lp-links { margin-left: auto; display: flex; align-items: center; gap: .5rem; }
+      .lp-main { max-width: 64rem; margin: 0 auto; padding: 0 1rem 3rem; }
+      .lp-hero { text-align: center; padding: clamp(2.5rem, 8vh, 5rem) 0 2rem; }
+      .lp-hero h1 { font-size: clamp(1.75rem, 5vw, 3rem); font-weight: 600; line-height: 1.15; margin: 0; }
+      .lp-hero .lp-lead { margin: 1rem auto 0; max-width: 36rem; font-size: 1.05rem; }
+      .lp-hero .btn { margin-top: 1.5rem; padding: .6rem 1.4rem; font-size: 1rem; }
+      .lp-hero .lp-note { margin-top: .75rem; }
+      .lp-preview { position: relative; max-height: 330px; overflow: hidden; margin-top: 1rem; }
+      .lp-preview * { scrollbar-width: none; } .lp-preview *::-webkit-scrollbar { display: none; } .lp-preview [class*="overflow-x"] { overflow: hidden !important; }
+      .lp-preview-inner { pointer-events: none; user-select: none; }
+      .lp-preview::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 7rem;
+                           background: linear-gradient(to bottom, transparent, var(--lp-bg)); pointer-events: none; }
+      .lp-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+               clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+      @media (max-width: 760px) { .lp-main { padding: 0 .75rem 2rem; } .lp-preview { max-height: 300px; } }
+    </style>
+    <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
+    <header class="lp-header border-b border-zinc-200 dark:border-zinc-800">
+        <span class="flex items-center gap-2">
+            <img :src="dark ? '{{ LOGO_DARK }}' : '{{ LOGO_LIGHT }}'" class="h-6 w-6 object-contain" alt="">
+            <span class="font-semibold text-lg">{{ APP_NAME }}</span>
+        </span>
+        <nav class="lp-links" aria-label="Linki">
+            <a href="/pomoc" class="btn-secondary">Jak to działa</a>
+            <a href="https://github.com/Wheatlay/Najemnik-demo" class="btn-secondary" rel="noopener">GitHub</a>
+        </nav>
+    </header>
+
+    <main class="lp-main">
+        <section class="lp-hero">
+            <h1>Od ogłoszenia do dobrej decyzji.</h1>
+            <p class="lp-lead text-zinc-500 dark:text-zinc-400">Najemnik liczy pełny koszt najmu i zestawia oferty obok siebie.</p>
+            <a href="/start" class="btn">Zobacz demo</a>
+            <p class="lp-note text-xs text-zinc-500 dark:text-zinc-400">Bez rejestracji · trzy syntetyczne ogłoszenia · ok. 90 sekund</p>
+        </section>
+
+        <p class="lp-sr">Podgląd aplikacji: porównanie dwóch syntetycznych ogłoszeń. Tabela zestawia sumę miesięczną i koszt wejścia oraz pozostałe dane obok siebie, a lepsze wartości są wyróżnione.</p>
+        <div class="lp-preview" aria-hidden="true" inert>
+            <div class="lp-preview-inner">
+                {% include "partials/compare_focus.html" %}
+            </div>
+        </div>
+    </main>
+</body>
+</html>

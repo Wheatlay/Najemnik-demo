@@ -17,6 +17,8 @@ Accounts, registration, email, administration, scraping execution, imports, brow
 
 The three Katowice scenarios, their contacts, URLs and nine interior images are entirely synthetic. Model-labelled text is recorded output grounded in the synthetic listing descriptions; the hosted application never calls a model.
 
+Opening `/` shows a short landing page. **Zobacz demo** (`/start`) creates the guest session and goes straight into the ~90 second guided tour (`/galeria?tour=krotki`); the full walkthrough stays available from the tour icon in the top bar.
+
 Each browser receives a small isolated SQLite-backed guest session. **Reset demo** restores only that browser's fixtures.
 
 ## Run locally

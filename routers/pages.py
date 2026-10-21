@@ -32,9 +32,14 @@ def _render_view(request: Request, full_template: str, partial_template: str, ct
     return render(request, full_template, ctx)
 
 
-@router.get("/")
-def root():
-    return RedirectResponse(url="/galeria")
+@router.api_route("/start", methods=["GET", "HEAD"])
+def start():
+    """Entry from the landing page. The guest session itself is created by
+    DemoSessionMiddleware (this route sits behind current_user); we just
+    send the visitor into the short guided tour."""
+    if not DEMO_MODE:
+        return RedirectResponse(url="/galeria")
+    return RedirectResponse(url="/galeria?tour=krotki")
 
 
 @router.post("/demo/wczytaj")

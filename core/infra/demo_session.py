@@ -112,7 +112,8 @@ class DemoSessionMiddleware(BaseHTTPMiddleware):
             )
 
         created_token = None
-        if not any(path.startswith(prefix) for prefix in _PASSTHROUGH_PREFIXES):
+        # "/" is the public landing page: no guest session until /start.
+        if path != "/" and not any(path.startswith(prefix) for prefix in _PASSTHROUGH_PREFIXES):
             signed_token = request.cookies.get(SESSION_COOKIE_NAME)
             token = _validated_raw_token(signed_token)
             if token is None:

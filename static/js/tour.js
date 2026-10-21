@@ -569,8 +569,11 @@ function registerTourSteps(steps) {
     const params = new URLSearchParams(window.location.search);
     const wantsTour = params.get("samouczek") === "1";
     const wantsResume = params.get("wznow-samouczek") === "1";
-    if (wantsTour || wantsResume) {
+    // ?tour=krotki - set by /start: begin the short tour at once, no welcome modal.
+    const wantsShort = params.get("tour") === "krotki";
+    if (wantsTour || wantsResume || wantsShort) {
         const url = new URL(window.location.href);
+        url.searchParams.delete("tour");
         url.searchParams.delete("samouczek");
         url.searchParams.delete("wznow-samouczek");
         window.history.replaceState({}, "", url);
@@ -580,9 +583,10 @@ function registerTourSteps(steps) {
     // pages (for example Help) must remain usable when opened directly.
     const firstVisit = window.location.pathname === "/galeria"
         && localStorage.getItem(TOUR_SEEN_KEY) !== "1";
-    if (!wantsTour && !wantsResume && !tourActive() && !firstVisit) return;
+    if (!wantsTour && !wantsResume && !wantsShort && !tourActive() && !firstVisit) return;
     const boot = () => {
-        if (wantsTour || firstVisit) startTour();
+        if (wantsShort) startTour("short");
+        else if (wantsTour || firstVisit) startTour();
         else if (wantsResume) resumeTour();
         else renderTour();
         updateTourLauncher();

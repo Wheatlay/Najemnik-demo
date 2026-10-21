@@ -16,12 +16,13 @@ def _enable_demo(monkeypatch):
     holding the immutable config value need the equivalent patch.
     """
     from core.infra import demo_session, templating
-    from routers import pages
+    from routers import pages, public
 
     monkeypatch.setattr(demo_session, "DEMO_MODE", True)
     monkeypatch.setattr(templating, "DEMO_MODE", True)
     monkeypatch.setitem(templating.templates.env.globals, "DEMO_MODE", True)
     monkeypatch.setattr(pages, "DEMO_MODE", True)
+    monkeypatch.setattr(public, "DEMO_MODE", True)
 
 
 def _csrf(html: str) -> str:
@@ -103,3 +104,44 @@ def test_portfolio_health_contract(anon_client):
     assert response.status_code == 200
     assert set(response.json()) == {"status", "demo", "version"}
     assert response.json()["status"] == "ok"
+
+
+def test_demo_root_is_landing_without_guest_session(db, monkeypatch):
+    _enable_demo(monkeypatch)
+    from main import app
+
+    with TestClient(app) as browser:
+        response = browser.get("/", follow_redirects=False)
+        assert response.status_code == 200
+        assert "Od ogłoszenia do dobrej decyzji" in response.text
+        assert 'href="/start"' in response.text
+        assert 'aria-hidden="true" inert' in response.text
+        assert not browser.cookies.get("najemnik_session")
+        with Session(db.get_engine()) as session:
+            assert session.exec(select(User.id).where(User.email.endswith("@demo.invalid"))).all() == []
+
+
+def test_demo_start_creates_guest_session_and_starts_short_tour(db, monkeypatch):
+    _enable_demo(monkeypatch)
+    from main import app
+
+    with TestClient(app) as browser:
+        response = browser.get("/start", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"] == "/galeria?tour=krotki"
+        assert browser.cookies.get("najemnik_session")
+        with Session(db.get_engine()) as session:
+            assert len(session.exec(select(User.id).where(User.email.endswith("@demo.invalid"))).all()) == 1
+
+
+def test_non_demo_root_still_redirects_to_gallery(db, monkeypatch):
+    from core.infra import demo_session
+    from routers import public
+    monkeypatch.setattr(demo_session, "DEMO_MODE", False)
+    monkeypatch.setattr(public, "DEMO_MODE", False)
+    from main import app
+
+    with TestClient(app) as browser:
+        response = browser.get("/", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"] == "/galeria"

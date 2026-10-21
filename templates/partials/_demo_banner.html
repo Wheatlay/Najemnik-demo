@@ -1,4 +1,14 @@
-{% if has_demo_listings %}
+{% if has_demo_listings and DEMO_MODE %}
+<div class="flex items-center justify-between gap-3 mb-2" data-tour="demo-banner" role="note">
+    <p class="text-xs text-zinc-500 dark:text-zinc-400">Dane, zdjęcia i kontakty są syntetyczne.</p>
+    <button type="button" class="btn-secondary text-xs shrink-0"
+            hx-post="/demo/reset" hx-target="body" hx-swap="none"
+            hx-confirm="Przywrócić początkowy stan demo?"
+            hx-on::after-request="sessionStorage.removeItem('tour:state'); localStorage.removeItem('tour:seen'); localStorage.removeItem('tour:paused'); window.location.reload()">
+        Resetuj demo
+    </button>
+</div>
+{% elif has_demo_listings %}
 <div class="hint" data-tour="demo-banner" role="note">
     <div class="hint-body">
         <div class="hint-title">Oglądasz trzy przykładowe ogłoszenia.</div>
