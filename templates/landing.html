@@ -23,14 +23,15 @@
       .lp-hero .lp-lead { margin: 1rem auto 0; max-width: 36rem; font-size: 1.05rem; }
       .lp-hero .btn { margin-top: 1.5rem; padding: .6rem 1.4rem; font-size: 1rem; }
       .lp-hero .lp-note { margin-top: .75rem; }
-      .lp-preview { position: relative; max-height: 330px; overflow: hidden; margin-top: 1rem; }
+      .lp-preview { position: relative; max-height: 560px; overflow: hidden; margin-top: 1rem; border: 1px solid rgb(39 39 42); border-radius: .75rem; }
+      .lp-preview img { display: block; width: 100%; height: auto; }
       .lp-preview * { scrollbar-width: none; } .lp-preview *::-webkit-scrollbar { display: none; } .lp-preview [class*="overflow-x"] { overflow: hidden !important; }
       .lp-preview-inner { pointer-events: none; user-select: none; }
       .lp-preview::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 7rem;
                            background: linear-gradient(to bottom, transparent, var(--lp-bg)); pointer-events: none; }
       .lp-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
                clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-      @media (max-width: 760px) { .lp-main { padding: 0 .75rem 2rem; } .lp-preview { max-height: 300px; } }
+      @media (max-width: 760px) { .lp-main { padding: 0 .75rem 2rem; } .lp-preview { max-height: 340px; } }
     </style>
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
@@ -54,10 +55,10 @@
             <p class="lp-note text-xs text-zinc-500 dark:text-zinc-400">Bez rejestracji · trzy syntetyczne ogłoszenia · ok. 90 sekund</p>
         </section>
 
-        <p class="lp-sr">Podgląd aplikacji: porównanie dwóch syntetycznych ogłoszeń. Tabela zestawia sumę miesięczną i koszt wejścia oraz pozostałe dane obok siebie, a lepsze wartości są wyróżnione.</p>
+        <p class="lp-sr">Podgląd aplikacji: galeria syntetycznych ogłoszeń ze zdjęciami i kosztem miesięcznym, obok szczegóły wybranej oferty ze zdjęciami, mapą, sumą miesięczną i kosztem wejścia.</p>
         <div class="lp-preview" aria-hidden="true" inert>
             <div class="lp-preview-inner">
-                {% include "partials/compare_focus.html" %}
+                <img src="/static/img/landing-preview.webp" width="1716" height="1277" alt="" loading="eager">
             </div>
         </div>
     </main>
